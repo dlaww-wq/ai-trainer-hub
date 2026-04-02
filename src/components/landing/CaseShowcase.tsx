@@ -73,6 +73,7 @@ type Case = {
   // 메타
   category: string;
   gradient: string;
+  templateSlug?: string;       // 연결되는 템플릿 slug
 };
 
 const cases: Case[] = [
@@ -96,6 +97,7 @@ const cases: Case[] = [
     levelLabel: "+말투 학습",
     category: "역할 학습",
     gradient: "from-orange-400 to-amber-500",
+    templateSlug: "text-cs-cafe",
   },
   {
     id: 2,
@@ -117,6 +119,7 @@ const cases: Case[] = [
     levelLabel: "+규정 학습",
     category: "지식 학습",
     gradient: "from-blue-400 to-indigo-500",
+    templateSlug: "text-cs-ecommerce",
   },
   {
     id: 3,
@@ -138,6 +141,7 @@ const cases: Case[] = [
     levelLabel: "+전문지식",
     category: "지식 학습",
     gradient: "from-violet-400 to-purple-500",
+    templateSlug: "text-edu-tutor",
   },
   {
     id: 4,
@@ -159,6 +163,7 @@ const cases: Case[] = [
     levelLabel: "+톤 학습",
     category: "패턴 학습",
     gradient: "from-pink-400 to-rose-500",
+    templateSlug: "text-content-sns",
   },
   {
     id: 5,
@@ -180,6 +185,7 @@ const cases: Case[] = [
     levelLabel: "+말투+구성",
     category: "패턴 학습",
     gradient: "from-red-400 to-orange-500",
+    templateSlug: "text-content-sns",
   },
   {
     id: 6,
@@ -201,6 +207,7 @@ const cases: Case[] = [
     levelLabel: "+데이터분석",
     category: "데이터 학습",
     gradient: "from-emerald-400 to-teal-500",
+    templateSlug: "data-demand-forecast",
   },
   {
     id: 7,
@@ -222,6 +229,7 @@ const cases: Case[] = [
     levelLabel: "+패턴 발견",
     category: "데이터 학습",
     gradient: "from-teal-400 to-cyan-500",
+    templateSlug: "text-content-product",
   },
   {
     id: 8,
@@ -243,6 +251,7 @@ const cases: Case[] = [
     levelLabel: "+패턴 학습",
     category: "패턴 학습",
     gradient: "from-sky-400 to-blue-500",
+    templateSlug: "text-cs-realestate",
   },
   {
     id: 9,
@@ -264,6 +273,7 @@ const cases: Case[] = [
     levelLabel: "+설명법 학습",
     category: "패턴 학습",
     gradient: "from-indigo-400 to-violet-500",
+    templateSlug: "text-edu-tutor",
   },
   {
     id: 10,
@@ -285,6 +295,7 @@ const cases: Case[] = [
     levelLabel: "+맥락 축적",
     category: "기억 학습",
     gradient: "from-purple-400 to-fuchsia-500",
+    templateSlug: "text-content-sns",
   },
   {
     id: 11,
@@ -306,6 +317,7 @@ const cases: Case[] = [
     levelLabel: "파인튜닝+RAG",
     category: "전문 학습",
     gradient: "from-gray-500 to-slate-700",
+    templateSlug: "text-cs-legal",
   },
   {
     id: 12,
@@ -327,6 +339,7 @@ const cases: Case[] = [
     levelLabel: "+의료 지식",
     category: "전문 학습",
     gradient: "from-rose-400 to-pink-600",
+    templateSlug: "text-cs-medical",
   },
   {
     id: 13,
@@ -348,6 +361,7 @@ const cases: Case[] = [
     levelLabel: "RAG+파인튜닝",
     category: "전문 학습",
     gradient: "from-emerald-400 to-green-600",
+    templateSlug: "text-content-product",
   },
   {
     id: 14,
@@ -559,7 +573,19 @@ function CaseCard({ c, index }: { c: Case; index: number }) {
               <p className="text-[10px] text-gray-600 leading-relaxed">{c.learningInsight}</p>
             </div>
 
-            <p className="text-[10px] text-gray-400 text-center mt-2">탭하여 돌아가기</p>
+            {c.templateSlug && (
+              <Link
+                href={`/learn?template=${c.templateSlug}`}
+                onClick={(e) => e.stopPropagation()}
+                className="mt-2 block"
+              >
+                <Button size="sm" className="w-full gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-xs h-8">
+                  이 템플릿으로 학습하기 <ArrowRight className="size-3" />
+                </Button>
+              </Link>
+            )}
+
+            <p className="text-[10px] text-gray-400 text-center mt-1.5">탭하여 돌아가기</p>
           </div>
         </div>
       </motion.div>
