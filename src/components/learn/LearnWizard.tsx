@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useLearnStore } from "@/store/learn";
 import { TEMPLATES } from "@/lib/templates";
 import { matchTemplate } from "@/lib/templates/matcher";
+import { getSampleData } from "@/lib/sample-data";
 
 import IdentityStep from "./IdentityStep";
 import KnowledgeStep from "./KnowledgeStep";
@@ -24,10 +25,12 @@ const TABS = [
 ];
 
 export default function LearnWizard({ templateId }: { templateId: string }) {
-  const { currentTab, setCurrentTab, setTemplateId, setSystemPrompt, setKnowledgeItems } =
-    useLearnStore();
+  const {
+    currentTab, setCurrentTab, setTemplateId, setSystemPrompt,
+    setKnowledgeItems, setBusinessName, setTone, setRules, updateKnowledgeItem,
+  } = useLearnStore();
 
-  // Initialize template data
+  // Initialize template data + sample data
   useEffect(() => {
     const tpl =
       TEMPLATES.find((t) => t.id === templateId) ||
@@ -36,17 +39,36 @@ export default function LearnWizard({ templateId }: { templateId: string }) {
     setTemplateId(tpl.id);
     setSystemPrompt(tpl.systemPrompt);
 
-    const items = tpl.dataChecklist.map((d, i) => ({
-      id: `item_${i}`,
-      label: d.item,
-      required: d.required,
-      effectBefore: d.effectBefore,
-      effectAfter: d.effectAfter,
-      value: "",
-      filled: false,
-    }));
+    // Check for sample data
+    const sample = getSampleData(templateId) || getSampleData(tpl.id);
+
+    const items = tpl.dataChecklist.map((d, i) => {
+      const sampleValue = sample?.knowledgeValues[i] || "";
+      return {
+        id: `item_${i}`,
+        label: d.item,
+        required: d.required,
+        effectBefore: d.effectBefore,
+        effectAfter: d.effectAfter,
+        value: sampleValue,
+        filled: sampleValue.length > 0,
+      };
+    });
     setKnowledgeItems(items);
-  }, [templateId, setTemplateId, setSystemPrompt, setKnowledgeItems]);
+
+    // Pre-fill identity if sample exists
+    if (sample) {
+      setBusinessName(sample.businessName);
+      setTone(sample.tone);
+      setRules(sample.rules);
+      // Trigger quality score recalculation
+      items.forEach((item) => {
+        if (item.filled) {
+          updateKnowledgeItem(item.id, item.value);
+        }
+      });
+    }
+  }, [templateId, setTemplateId, setSystemPrompt, setKnowledgeItems, setBusinessName, setTone, setRules, updateKnowledgeItem]);
 
   const overallProgress = Math.min(100, currentTab * 25 + 10);
 

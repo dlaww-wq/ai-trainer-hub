@@ -18,6 +18,11 @@ import {
   Sparkles,
   Clock,
   Star,
+  Palette,
+  Video,
+  AudioLines,
+  Combine,
+  Workflow,
 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -42,6 +47,11 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
   "data-learning": BarChart3,
   "audio-learning": Mic,
   "action-learning": Cpu,
+  "image-gen-learning": Palette,
+  "video-learning": Video,
+  "voice-clone-learning": AudioLines,
+  "multimodal-learning": Combine,
+  "agent-learning": Workflow,
 };
 
 const TIER_CONFIG = {

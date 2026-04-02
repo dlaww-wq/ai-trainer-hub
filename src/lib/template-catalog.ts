@@ -1075,6 +1075,374 @@ export const CATALOG: TopCategory[] = [
       },
     ],
   },
+
+  /* ============================================================== */
+  /*  6. 이미지 생성 학습 (LoRA / DreamBooth)                         */
+  /* ============================================================== */
+  {
+    id: "image-gen-learning",
+    name: "이미지 생성 학습",
+    icon: "Palette",
+    description: "LoRA, DreamBooth 등으로 나만의 스타일/캐릭터/제품 이미지를 생성하는 AI를 학습시킵니다",
+    color: "text-fuchsia-600",
+    gradient: "from-fuchsia-500 to-pink-600",
+    howItWorks: "내 사진 10~30장으로 AI 이미지 생성 모델을 파인튜닝합니다. LoRA는 저비용·빠른 학습, DreamBooth는 고품질 결과에 강합니다.",
+    inputTypes: ["사진 (10~30장)", "스타일 참조 이미지", "프롬프트 예시", "부정 프롬프트"],
+    keyPrinciple: "고품질 참조 이미지 20장이 저화질 100장보다 낫습니다. 배경·조명·각도가 다양할수록 일반화 성능이 올라갑니다.",
+    researchBasis: "Hu et al. 2021 (LoRA), Ruiz et al. 2022 (DreamBooth), Rombach et al. 2022 (Stable Diffusion)",
+    freeFeature: "프롬프트 가이드라인 + 이미지 준비 체크리스트",
+    subcategories: [
+      {
+        id: "image-gen-product",
+        name: "상품 사진 AI 생성",
+        industry: "이커머스",
+        description: "내 상품 사진 20장으로 다양한 배경·각도의 상품 이미지를 AI로 자동 생성",
+        tier: "starter",
+        tags: ["상품사진", "이커머스", "LoRA", "AI포토"],
+        whatYouLearn: "상품 촬영 없이 다양한 컨셉의 상품 이미지를 AI로 무한 생성",
+        inputExample: "흰 배경 상품사진 20장 + '미니멀 감성' 스타일 참조 5장",
+        outputExample: "카페 배경, 숲속 배경, 크리스마스 컨셉 등 상품 이미지 무한 생성",
+        templates: [
+          {
+            id: "image-gen-product-photo",
+            name: "AI 상품 포토 생성",
+            tier: "starter",
+            description: "상품 사진을 학습시켜 다양한 배경/시즌별 상품 이미지 자동 생성",
+            difficulty: "intermediate",
+            estimatedTime: "45분",
+            dataRequirements: [
+              { item: "상품 사진 (다양한 각도, 20장+)", type: "image", required: true, description: "흰 배경 + 실제 사용 컷 혼합이 최적", example: "정면, 45도, 측면, 클로즈업, 사용 중 사진" },
+              { item: "원하는 스타일 참조 이미지 (5장+)", type: "image", required: true, description: "AI가 생성할 느낌의 참조", example: "미니멀 스튜디오, 라이프스타일, 플랫레이 등" },
+              { item: "프롬프트 가이드 (스타일 설명)", type: "text", required: true, description: "원하는 분위기를 텍스트로 설명", example: "clean minimal product shot, soft shadow, warm tone" },
+              { item: "부정 프롬프트 (피할 요소)", type: "text", required: false, description: "생성 시 피할 요소", example: "blurry, low quality, distorted, watermark" },
+            ],
+            systemPromptPreview: "이 LoRA 모델은 '{상품명}'의 시각적 특징을 학습했습니다. 다양한 배경과 조명에서 일관된 상품 이미지를 생성합니다...",
+            beforeAfter: {
+              before: "상품사진 촬영 → 스튜디오 예약(50만원) → 촬영 반나절 → 보정 3일 → 컨셉당 5장",
+              after: "AI 학습 1회 → '크리스마스 분위기로 생성' → 10초 만에 20장 → 무한 컨셉 변경 가능",
+            },
+            guide: [
+              "1단계: 상품 사진 20장을 다양한 각도에서 촬영 (흰 배경 권장)",
+              "2단계: 원하는 스타일의 참조 이미지를 5장 이상 수집",
+              "3단계: LoRA 학습 실행 (약 20분 소요)",
+              "4단계: 프롬프트로 다양한 배경/시즌/컨셉의 상품 이미지 생성",
+              "5단계: 마음에 드는 이미지 선별 → 쇼핑몰/SNS에 업로드",
+            ],
+            keywords: ["AI 상품사진", "LoRA", "상품 이미지 생성", "이커머스 AI", "AI 포토"],
+          },
+        ],
+      },
+      {
+        id: "image-gen-character",
+        name: "캐릭터/아바타 AI 생성",
+        industry: "크리에이터",
+        description: "내 얼굴/캐릭터 사진으로 일관된 AI 아바타와 프로필 이미지를 생성",
+        tier: "starter",
+        tags: ["캐릭터", "아바타", "DreamBooth", "AI셀카"],
+        whatYouLearn: "일관된 얼굴/캐릭터로 다양한 컨셉 이미지를 생성하는 AI",
+        inputExample: "셀카 15장 (다양한 조명/각도) + '사이버펑크' 스타일",
+        outputExample: "우주 비행사, 중세 기사, 애니메이션 스타일 등 나의 얼굴로 무한 생성",
+        templates: [
+          {
+            id: "image-gen-avatar",
+            name: "AI 프로필/아바타 생성",
+            tier: "starter",
+            description: "내 사진 15장으로 일관된 AI 프로필/아바타 무한 생성",
+            difficulty: "beginner",
+            estimatedTime: "30분",
+            dataRequirements: [
+              { item: "얼굴 사진 (다양한 각도/조명, 15장+)", type: "image", required: true, description: "정면, 좌우 45도, 다른 조명 3종 이상", example: "자연광 정면, 실내 좌측, 야외 우측 등" },
+              { item: "원하는 스타일 참조", type: "text", required: true, description: "생성할 컨셉 설명", example: "사이버펑크, 르네상스 초상화, 지브리 스타일" },
+            ],
+            systemPromptPreview: "DreamBooth로 학습된 얼굴 특징을 유지하며 다양한 스타일의 이미지를 생성합니다...",
+            beforeAfter: {
+              before: "프로필 사진 = 셀카 1장, 모든 SNS에 동일한 사진 사용",
+              after: "AI가 내 얼굴로 100가지 컨셉 생성: 비즈니스용, SNS용, 게임용, 크리스마스용...",
+            },
+            guide: [
+              "1단계: 다양한 각도와 조명에서 셀카 15장 촬영",
+              "2단계: DreamBooth 학습 (약 30분)",
+              "3단계: '우주 비행사 스타일로 나를 그려줘' → AI 생성",
+            ],
+            keywords: ["AI 아바타", "DreamBooth", "AI 프로필", "AI 셀카", "캐릭터 생성"],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ============================================================== */
+  /*  7. 영상/모션 학습                                               */
+  /* ============================================================== */
+  {
+    id: "video-learning",
+    name: "영상/모션으로 학습하기",
+    icon: "Video",
+    description: "영상 생성, 동작 인식, 제스처 학습 등 비디오 기반 AI를 학습시킵니다",
+    color: "text-red-600",
+    gradient: "from-red-500 to-orange-600",
+    howItWorks: "참조 영상과 프롬프트로 AI가 새 영상을 생성하거나, 동작 패턴을 인식하도록 학습합니다. Sora, Runway, Pika 등의 모델이 이 방식입니다.",
+    inputTypes: ["참조 영상", "동작 시퀀스", "모션 캡처 데이터", "텍스트 프롬프트"],
+    keyPrinciple: "영상 AI는 시간축을 이해해야 합니다. 키프레임 지정과 모션 일관성이 품질을 결정합니다.",
+    researchBasis: "Sora (OpenAI 2024), Gen-3 (Runway 2024), Kling (Kuaishou 2024), Pika 1.0 (2024)",
+    freeFeature: "영상 프롬프트 가이드 + 참조 영상 체크리스트",
+    subcategories: [
+      {
+        id: "video-gen",
+        name: "AI 영상 생성",
+        industry: "크리에이터/마케팅",
+        description: "텍스트나 이미지를 입력하면 AI가 영상을 자동 생성",
+        tier: "pro",
+        tags: ["영상생성", "Sora", "Runway", "AI영상"],
+        whatYouLearn: "프롬프트만으로 마케팅 영상, 제품 데모, SNS 릴스를 자동 생성",
+        inputExample: "'카페에서 라떼를 만드는 과정, 시네마틱, 따뜻한 조명' + 참조 이미지 3장",
+        outputExample: "15초 시네마틱 영상: 원두 그라인딩 → 에스프레소 추출 → 라떼아트 → 서빙",
+        templates: [
+          {
+            id: "video-gen-marketing",
+            name: "마케팅 영상 AI 생성",
+            tier: "pro",
+            description: "프롬프트+참조 이미지로 15~60초 마케팅 영상 자동 생성",
+            difficulty: "intermediate",
+            estimatedTime: "60분",
+            dataRequirements: [
+              { item: "상품/서비스 참조 이미지 (5장+)", type: "image", required: true, description: "AI가 영상에 반영할 시각적 참조", example: "상품 사진, 매장 인테리어, 브랜드 로고" },
+              { item: "영상 스크립트/스토리보드", type: "text", required: true, description: "씬별 구성과 나레이션", example: "씬1: 원두 클로즈업(3초) / 씬2: 핸드드립 과정(5초) / ..." },
+              { item: "참조 영상 스타일 (URL 또는 설명)", type: "text", required: true, description: "원하는 영상 분위기", example: "Apple 광고 스타일, 시네마틱, 슬로우모션" },
+              { item: "배경음악 분위기", type: "text", required: false, description: "영상 BGM 스타일", example: "Lo-fi, acoustic, upbeat corporate" },
+            ],
+            systemPromptPreview: "시네마틱 마케팅 영상을 생성합니다. 참조 이미지와 스토리보드를 기반으로 일관된 브랜드 톤의 영상을 만듭니다...",
+            beforeAfter: {
+              before: "영상 제작 외주 → 견적 300만원 → 촬영 1일 → 편집 2주 → 수정 3회",
+              after: "AI 생성 → 프롬프트 입력 5분 → 15초 영상 3분 → 무한 수정 → 비용 0원",
+            },
+            guide: [
+              "1단계: 참조 이미지(상품, 매장)를 5장 이상 준비",
+              "2단계: 씬별 스토리보드를 텍스트로 작성",
+              "3단계: 원하는 스타일의 참조 영상을 지정",
+              "4단계: AI가 영상 생성 (약 2~5분)",
+              "5단계: 결과 확인 후 프롬프트 수정으로 재생성",
+            ],
+            keywords: ["AI 영상", "마케팅 영상", "Sora", "Runway", "영상 자동화"],
+          },
+        ],
+      },
+      {
+        id: "video-motion",
+        name: "동작/제스처 인식 AI",
+        industry: "헬스케어/스포츠/제조",
+        description: "영상에서 사람의 동작을 인식하고 분석하는 AI를 학습",
+        tier: "pro",
+        tags: ["동작인식", "포즈추정", "스포츠AI", "안전관리"],
+        whatYouLearn: "자세 교정, 운동 폼 분석, 작업자 안전 모니터링 등 동작 기반 AI",
+        inputExample: "운동 영상 100개 + 올바른/잘못된 자세 라벨링",
+        outputExample: "실시간 자세 분석: '무릎이 발끝을 넘었습니다. 각도를 5도 줄여주세요'",
+        templates: [
+          {
+            id: "video-motion-fitness",
+            name: "운동 자세 교정 AI",
+            tier: "pro",
+            description: "운동 영상을 학습시켜 실시간으로 자세를 분석하고 교정하는 AI",
+            difficulty: "advanced",
+            estimatedTime: "2시간",
+            dataRequirements: [
+              { item: "올바른 자세 영상 (운동별 20개+)", type: "image", required: true, description: "전문 트레이너의 시범 영상", example: "스쿼트 정면/측면/후면, 데드리프트 측면 등" },
+              { item: "잘못된 자세 예시 (운동별 10개+)", type: "image", required: true, description: "흔한 실수 패턴", example: "무릎 과신전, 허리 라운딩, 어깨 승모근 사용 등" },
+              { item: "관절 각도 기준표", type: "text", required: true, description: "운동별 정상/위험 각도 범위", example: "스쿼트: 무릎각도 90~120도 정상, 70도 미만 위험" },
+              { item: "교정 멘트 가이드", type: "text", required: false, description: "자세별 피드백 문구", example: "'무릎이 안쪽으로 모이고 있어요. 발끝 방향으로 밀어주세요'" },
+            ],
+            systemPromptPreview: "실시간 포즈 추정으로 관절 각도를 분석하고, 운동별 안전 범위를 벗어나면 즉시 교정 피드백을 제공합니다...",
+            beforeAfter: {
+              before: "PT 비용 월 40만원, 혼자 운동하면 자세 확인 불가 → 부상 위험",
+              after: "AI가 실시간 자세 분석: '허리가 둥글어졌어요! 코어에 힘주고 가슴을 펴주세요' → 부상 70% 감소",
+            },
+            guide: [
+              "1단계: 운동별 올바른/잘못된 자세 영상을 수집",
+              "2단계: 관절 포인트 자동 추출 (MediaPipe/OpenPose)",
+              "3단계: 정상/위험 각도 기준 라벨링",
+              "4단계: 분류 모델 학습",
+              "5단계: 실시간 웹캠 피드로 테스트",
+            ],
+            keywords: ["운동 AI", "자세 교정", "포즈 추정", "헬스 AI", "MediaPipe"],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ============================================================== */
+  /*  8. 음성 클로닝/TTS 학습                                         */
+  /* ============================================================== */
+  {
+    id: "voice-clone-learning",
+    name: "음성 클로닝/TTS 학습",
+    icon: "AudioLines",
+    description: "내 목소리를 AI에게 학습시켜 텍스트를 내 음성으로 읽어주는 TTS를 만듭니다",
+    color: "text-violet-600",
+    gradient: "from-violet-500 to-purple-600",
+    howItWorks: "음성 샘플 3~30분으로 내 목소리의 톤, 억양, 발음 패턴을 학습합니다. 학습 후 텍스트만 입력하면 내 목소리로 자동 생성됩니다.",
+    inputTypes: ["음성 녹음 (WAV/MP3)", "대본 텍스트", "스타일 지시 (감정, 속도)"],
+    keyPrinciple: "깨끗한 녹음 환경이 품질의 80%. 배경 소음 없는 3분 녹음이 소음 섞인 30분보다 낫습니다.",
+    researchBasis: "VALL-E (Microsoft 2023), ElevenLabs, Coqui TTS, OpenAI TTS",
+    freeFeature: "녹음 가이드라인 + 대본 템플릿",
+    subcategories: [
+      {
+        id: "voice-clone-tts",
+        name: "내 목소리 TTS",
+        industry: "크리에이터/교육",
+        description: "내 목소리로 유튜브 나레이션, 팟캐스트, 오디오북을 자동 생성",
+        tier: "starter",
+        tags: ["음성클로닝", "TTS", "나레이션", "팟캐스트"],
+        whatYouLearn: "텍스트만 입력하면 내 목소리로 자동 읽어주는 AI TTS",
+        inputExample: "내 목소리 녹음 10분 + 동일 대본 텍스트",
+        outputExample: "블로그 글을 입력하면 내 목소리로 5분 팟캐스트 자동 생성",
+        templates: [
+          {
+            id: "voice-clone-creator",
+            name: "크리에이터 음성 클론",
+            tier: "starter",
+            description: "유튜브/팟캐스트 나레이션을 내 목소리 AI로 자동 생성",
+            difficulty: "beginner",
+            estimatedTime: "20분",
+            dataRequirements: [
+              { item: "깨끗한 음성 녹음 (3분+)", type: "audio", required: true, description: "조용한 환경, 일정한 거리, 자연스러운 톤", example: "마이크 20cm 거리, 배경소음 없이, 평소 말투로 대본 읽기" },
+              { item: "녹음 대본 텍스트", type: "text", required: true, description: "녹음한 내용과 동일한 텍스트", example: "다양한 문장 구조 포함: 평서문, 의문문, 감탄문 등" },
+              { item: "스타일 지시", type: "text", required: false, description: "원하는 음성 스타일", example: "밝고 에너지 있는 유튜버 톤 / 차분한 팟캐스트 톤" },
+            ],
+            systemPromptPreview: "학습된 화자의 음성 특성(톤, 피치, 속도, 억양)을 유지하며 새로운 텍스트를 음성으로 변환합니다...",
+            beforeAfter: {
+              before: "유튜브 나레이션 10분 → 녹음 30분 + 편집 1시간 + NG 재녹음",
+              after: "대본 입력 → AI가 내 목소리로 10분 나레이션 → 30초 생성 → 감정/속도 조절 가능",
+            },
+            guide: [
+              "1단계: 조용한 환경에서 제공된 대본을 자연스럽게 읽기 (3분)",
+              "2단계: 녹음 파일 + 대본 텍스트 업로드",
+              "3단계: AI 음성 모델 학습 (약 10분)",
+              "4단계: 새 텍스트 입력 → 내 목소리로 자동 생성",
+            ],
+            keywords: ["음성 클로닝", "TTS", "AI 나레이션", "유튜브 음성", "팟캐스트 AI"],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ============================================================== */
+  /*  9. 멀티모달 AI 학습                                             */
+  /* ============================================================== */
+  {
+    id: "multimodal-learning",
+    name: "멀티모달 AI 학습",
+    icon: "Combine",
+    description: "텍스트+이미지+음성을 통합 학습시켜 복합적인 이해와 생성이 가능한 AI를 만듭니다",
+    color: "text-amber-600",
+    gradient: "from-amber-500 to-orange-600",
+    howItWorks: "여러 종류의 데이터(텍스트, 이미지, 음성, 비디오)를 동시에 학습시켜 AI가 맥락을 종합적으로 이해합니다. GPT-4V, Gemini, Claude의 핵심 기술입니다.",
+    inputTypes: ["텍스트+이미지 쌍", "음성+텍스트 쌍", "영상+설명 쌍"],
+    keyPrinciple: "모달리티 간 정렬(Alignment)이 핵심. 이미지와 설명이 정확히 매칭되어야 합니다.",
+    researchBasis: "GPT-4V (OpenAI 2023), Gemini (Google 2024), Claude 3.5 (Anthropic 2024), LLaVA (2023)",
+    freeFeature: "멀티모달 데이터 준비 가이드 + 정렬 체크리스트",
+    subcategories: [
+      {
+        id: "multimodal-product",
+        name: "멀티모달 상품 이해 AI",
+        industry: "이커머스",
+        description: "상품 사진+설명+리뷰를 통합 학습시켜 이미지만 보고 설명을 생성하는 AI",
+        tier: "pro",
+        tags: ["멀티모달", "상품설명", "이미지인식", "자동생성"],
+        whatYouLearn: "상품 사진을 올리면 자동으로 상세 설명, SEO 키워드, SNS 캡션을 생성",
+        inputExample: "상품 사진 100장 + 각 사진의 상세 설명 + 고객 리뷰",
+        outputExample: "새 상품 사진 1장 올리면 → 상세페이지 설명 + 인스타 캡션 + 해시태그 자동 생성",
+        templates: [
+          {
+            id: "multimodal-product-desc",
+            name: "사진→상품설명 자동 생성",
+            tier: "pro",
+            description: "상품 사진만 올리면 상세 설명, SEO, SNS 콘텐츠까지 자동 생성",
+            difficulty: "advanced",
+            estimatedTime: "90분",
+            dataRequirements: [
+              { item: "상품 사진 + 설명 쌍 (50세트+)", type: "image", required: true, description: "사진과 대응하는 상세 설명이 정확히 매칭", example: "사진: 린넨 셔츠 정면 → 설명: '프리미엄 리넨 100%, 여름 통기성 최적...'" },
+              { item: "카테고리별 설명 스타일 가이드", type: "text", required: true, description: "카테고리마다 강조 포인트 다름", example: "의류: 소재+핏+스타일링 / 가전: 스펙+기능+사용 시나리오" },
+              { item: "SEO 키워드 목록", type: "text", required: false, description: "검색 최적화 키워드", example: "린넨셔츠, 여름셔츠, 남자린넨, 오버핏셔츠" },
+            ],
+            systemPromptPreview: "상품 이미지를 분석하여 소재, 색상, 디자인 특징을 파악하고, 브랜드 톤에 맞는 상세 설명을 자동 생성합니다...",
+            beforeAfter: {
+              before: "상품 100개 상세페이지 작성 → 카피라이터 2주 + 비용 200만원",
+              after: "사진만 올리면 → 상세 설명 + SEO + SNS 캡션 자동 → 100개 1시간 완료",
+            },
+            guide: [
+              "1단계: 기존 상품 사진+설명 50세트 준비",
+              "2단계: 카테고리별 설명 스타일 가이드 작성",
+              "3단계: 이미지-텍스트 정렬 검증",
+              "4단계: 모델 학습",
+              "5단계: 새 상품 사진으로 테스트",
+            ],
+            keywords: ["멀티모달 AI", "상품설명 자동화", "이미지→텍스트", "AI 상세페이지", "SEO 자동화"],
+          },
+        ],
+      },
+    ],
+  },
+
+  /* ============================================================== */
+  /*  10. AI 에이전트 학습                                             */
+  /* ============================================================== */
+  {
+    id: "agent-learning",
+    name: "AI 에이전트 학습",
+    icon: "Workflow",
+    description: "자율적으로 도구를 사용하고, 판단하고, 실행하는 AI 에이전트를 만듭니다",
+    color: "text-emerald-600",
+    gradient: "from-emerald-500 to-teal-600",
+    howItWorks: "AI에게 도구(검색, DB, API 등)를 연결하고, 언제 어떤 도구를 쓸지 학습시킵니다. N8N, LangChain, CrewAI 기반의 자동화 워크플로우입니다.",
+    inputTypes: ["도구 정의 (API/함수)", "작업 지시서", "판단 기준 예시", "워크플로우 설계"],
+    keyPrinciple: "에이전트의 핵심은 '판단력'입니다. 도구를 쓸지 말지, 어떤 순서로 쓸지를 결정하는 예시가 가장 중요합니다.",
+    researchBasis: "ReAct (Yao et al. 2022), Toolformer (Schick et al. 2023), AutoGPT (2023), Claude MCP (2024)",
+    freeFeature: "에이전트 설계 가이드 + 도구 연결 체크리스트",
+    subcategories: [
+      {
+        id: "agent-business",
+        name: "비즈니스 자동화 에이전트",
+        industry: "전 업종",
+        description: "이메일 답변, 데이터 수집, 리포트 생성 등을 자동으로 처리하는 AI 에이전트",
+        tier: "pro",
+        tags: ["AI에이전트", "자동화", "N8N", "워크플로우"],
+        whatYouLearn: "사람의 개입 없이 반복 업무를 자동으로 판단하고 실행하는 AI",
+        inputExample: "업무 프로세스 문서 + 사용할 도구(이메일, DB, 슬랙) + 판단 기준",
+        outputExample: "고객 문의 → AI가 자동 분류 → 간단한 건 자동 답변 → 복잡한 건 담당자 슬랙 알림",
+        templates: [
+          {
+            id: "agent-cs-automation",
+            name: "고객 문의 자동 처리 에이전트",
+            tier: "pro",
+            description: "고객 문의를 자동 분류하고, 간단한 건 즉시 답변, 복잡한 건 담당자 배정",
+            difficulty: "advanced",
+            estimatedTime: "2시간",
+            dataRequirements: [
+              { item: "문의 분류 기준 (카테고리별 예시)", type: "text", required: true, description: "AI가 문의를 자동 분류하는 기준", example: "배송: '언제 오나요, 택배, 배송지' / 환불: '환불, 취소, 반품' / 상품: '사이즈, 색상, 재고'" },
+              { item: "카테고리별 자동 답변 템플릿", type: "text", required: true, description: "분류 후 자동 답변할 내용", example: "배송 문의 → '주문번호 확인 후 배송 현황을 안내드리겠습니다'" },
+              { item: "에스컬레이션 규칙", type: "text", required: true, description: "사람에게 넘기는 기준", example: "감정 부정 3회 이상, 금액 10만원+, 법적 언급" },
+              { item: "연결할 도구 목록", type: "text", required: false, description: "에이전트가 사용할 외부 도구", example: "주문 DB 조회, 슬랙 알림, 이메일 발송, CRM 업데이트" },
+            ],
+            systemPromptPreview: "고객 문의를 분석하여 카테고리를 판단하고, 적절한 도구를 사용하여 자동 처리합니다. 복잡한 건은 담당자에게 배정합니다...",
+            beforeAfter: {
+              before: "CS 담당자가 하루 200건 수동 처리 → 평균 응답 4시간 → 야근 일상",
+              after: "AI가 70% 자동 처리 → 평균 응답 30초 → 사람은 복잡한 30%만 집중 → 만족도 40% 상승",
+            },
+            guide: [
+              "1단계: 기존 문의를 카테고리별로 분류 (최소 5개 카테고리)",
+              "2단계: 카테고리별 자동 답변 템플릿 작성",
+              "3단계: 에스컬레이션(사람 전달) 규칙 정의",
+              "4단계: 도구 연결 (DB 조회, 슬랙, 이메일)",
+              "5단계: 실제 문의로 테스트 → 피드백 → 규칙 개선",
+            ],
+            keywords: ["AI 에이전트", "CS 자동화", "워크플로우", "N8N", "자동 분류"],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 /* ================================================================== */
