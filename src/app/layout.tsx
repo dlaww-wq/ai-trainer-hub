@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import Navbar from "@/components/ui/navbar";
+import AppShell from "@/components/shell/AppShell";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Trainer Hub — AI가 당신의 사업을 매일 더 잘 이해합니다",
+  title: "AI Trainer Hub — AI 학습 운영 플랫폼",
   description:
-    "OK만 누르세요. 나머지는 AI가 알아서 합니다. 온보딩 3분이면 AI 에이전트가 콘텐츠, 마케팅, 고객 응대까지 자동으로 처리합니다.",
+    "AI 에이전트 운영, 학습 템플릿 관리, 실시간 퍼포먼스 모니터링을 한 화면에서.",
 };
 
 export default function RootLayout({
@@ -27,11 +27,10 @@ export default function RootLayout({
   return (
     <html
       lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} dark antialiased`}
     >
-      <body className="min-h-full flex flex-col font-[family-name:var(--font-geist-sans)]">
-        <Navbar />
-        {children}
+      <body className="h-screen overflow-hidden font-[family-name:var(--font-geist-sans)]">
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );
