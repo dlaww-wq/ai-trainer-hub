@@ -86,11 +86,11 @@ export async function POST(request: NextRequest) {
       model: anthropic("claude-sonnet-4-6"),
       system: systemPrompt,
       messages: filteredMessages,
-      maxTokens: 1024,
+      maxOutputTokens: 1024,
       temperature: 0.7,
     });
 
-    return result.toDataStreamResponse();
+    return result.toTextStreamResponse();
   } catch (err) {
     console.error("[Chat] 오류:", err);
     return new Response(

@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { ElevenLabsClient } from "elevenlabs";
 
-const client = new ElevenLabsClient({
-  apiKey: process.env.ELEVENLABS_API_KEY,
-});
-
 // 기본 목소리 ID (Rachel - 자연스러운 한국어 지원)
 const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+
+function getClient() {
+  return new ElevenLabsClient({ apiKey: process.env.ELEVENLABS_API_KEY || "" });
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const audioStream = await client.textToSpeech.convert(
+    const audioStream = await getClient().textToSpeech.convert(
       voiceId || DEFAULT_VOICE_ID,
       {
         text,
@@ -63,7 +63,7 @@ export async function GET() {
     if (!process.env.ELEVENLABS_API_KEY) {
       return NextResponse.json({ voices: [] });
     }
-    const { voices } = await client.voices.getAll();
+    const { voices } = await getClient().voices.getAll();
     const voiceList = voices.map((v) => ({
       id: v.voice_id,
       name: v.name,
