@@ -11,13 +11,19 @@ import {
   Camera,
   ArrowRight,
   Bot,
-  User,
   Database,
   Sparkles,
   MessageSquare,
   ChevronRight,
+  PanelLeft,
+  PanelLeftClose,
+  Building2,
+  ScanSearch,
+  Cpu,
+  Factory,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { useWorkspace } from "@/store/workspace";
 
 /* ------------------------------------------------------------------ */
 /*  업종별 데모 데이터 (3x2 = 6개, 서비스/기술/동작 혼합)                  */
@@ -35,6 +41,88 @@ interface IndustryDemo {
   process: string[];
   chat: { q: string; a: string }[];
 }
+
+// 기업/공장 특화 템플릿 (최상단 노출)
+const ENTERPRISE_INDUSTRIES: IndustryDemo[] = [
+  {
+    id: "cs-ai",
+    icon: Building2,
+    name: "기업 CS AI",
+    tag: "기업/공장",
+    color: "text-blue-700",
+    bg: "bg-blue-50",
+    border: "border-blue-300",
+    tier: "free",
+    inputs: [
+      "제품 매뉴얼 & FAQ 데이터베이스",
+      "이전 CS 상담 기록 500건+",
+      "에스컬레이션 규칙 (담당자 연결 조건)",
+      "SLA 기준 & 응대 정책 문서",
+    ],
+    process: [
+      "제품 지식 전체 업로드",
+      "CS 패턴 자동 분류 학습",
+      "우선순위 자동 분류 설정",
+      "멀티채널(이메일·채팅·전화) 연동",
+    ],
+    chat: [
+      { q: "3호기 라인에서 이상음이 발생합니다", a: "이상음 유형을 알려주세요. 금속성 마찰음이면 베어링 점검, 진동음이면 체결 토크 확인이 필요합니다. 매뉴얼 7.3절 참고, 즉시 점검팀에 티켓 생성해드릴까요? 🔧" },
+      { q: "AS 처리 기간이 얼마나 걸리나요?", a: "일반 부품 교체 2~3일, 해외 특주 부품은 7~14일입니다. 주문번호 알려주시면 현재 재고 즉시 확인해드립니다. 긴급 건은 우선처리 신청 가능합니다 ⚡" },
+    ],
+  },
+  {
+    id: "image-ai",
+    icon: ScanSearch,
+    name: "이미지 학습 AI",
+    tag: "이미지학습",
+    color: "text-violet-700",
+    bg: "bg-violet-50",
+    border: "border-violet-300",
+    tier: "free",
+    inputs: [
+      "정상 제품 이미지 500장+ (다양한 각도)",
+      "불량 유형별 이미지 (스크래치·변형·오염)",
+      "라벨링 가이드 & 불량 기준서",
+      "검사 환경 캘리브레이션 데이터",
+    ],
+    process: [
+      "이미지 전처리 & 증강",
+      "불량 유형 자동 라벨링",
+      "CNN/ViT 분류 모델 학습",
+      "실시간 카메라 검사 라인 배포",
+    ],
+    chat: [
+      { q: "스크래치 불량률이 올라가고 있습니다", a: "최근 24시간 스크래치 불량 12.3% 감지. 3호기 조명각도 변경 후 증가 패턴 확인됩니다. 조명 재캘리브레이션 권장, 불량 이미지 샘플 추가 학습 진행할까요? 📊" },
+      { q: "새로운 불량 패턴이 발견됐어요", a: "신규 불량 유형 등록 시작합니다. 이미지 20장 이상 업로드해주시면 즉시 모델에 추가 학습합니다. 보통 30분 이내 배포 완료됩니다 🔬" },
+    ],
+  },
+  {
+    id: "physical-ai",
+    icon: Cpu,
+    name: "피지컬 학습 AI",
+    tag: "제조/IoT",
+    color: "text-emerald-700",
+    bg: "bg-emerald-50",
+    border: "border-emerald-300",
+    tier: "free",
+    inputs: [
+      "센서 데이터 (온도·압력·진동·전류)",
+      "정상 공정 파라미터 로그 (6개월+)",
+      "설비 고장 이력 & 원인 분석 기록",
+      "공정 레시피 & 설비 사양서",
+    ],
+    process: [
+      "시계열 센서 데이터 수집",
+      "이상 패턴 라벨링 & 피처 추출",
+      "예측 정비 모델 학습 (LSTM)",
+      "실시간 경보 & 예방 정비 스케줄 배포",
+    ],
+    chat: [
+      { q: "2호기 진동값이 평소보다 높습니다", a: "진동 RMS 4.2mm/s → 경고 임계값 초과. 베어링 마모 확률 87% 예측. 다음 주 교체 권장, 지금 예방정비 일정 잡으면 긴급 고장 리스크 94% 감소합니다 ⚡" },
+      { q: "이번 달 에너지 소비가 급등했어요", a: "3호기 압축기 효율 저하 감지됩니다. 냉각수 온도 +8°C 상승과 상관관계 확인. 냉각탑 청소 & 냉매 충전 권장. 예상 절감액 월 120만원 🌿" },
+    ],
+  },
+];
 
 const INDUSTRIES: IndustryDemo[] = [
   // 서비스직
@@ -326,20 +414,55 @@ function IndustryCard({ demo, index }: { demo: IndustryDemo; index: number }) {
 /*  메인                                                               */
 /* ------------------------------------------------------------------ */
 export default function HomeView() {
+  const { sidebarCollapsed, toggleSidebar } = useWorkspace();
+
   return (
     <div className="h-full overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
       <div className="px-6 pt-6 pb-4">
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-bold text-gray-900">AI가 고객을 응대합니다</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              업종별 학습 데이터 → 학습 과정 → AI 응답 결과를 바로 확인하세요.
-            </p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleSidebar}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors text-xs font-medium"
+              title={sidebarCollapsed ? "학습 성과 패널 열기" : "학습 성과 패널 닫기"}
+            >
+              {sidebarCollapsed ? <PanelLeft className="size-3.5" /> : <PanelLeftClose className="size-3.5" />}
+              {sidebarCollapsed ? "성과 패널" : "패널 닫기"}
+            </button>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">AI가 고객을 응대합니다</h1>
+              <p className="text-sm text-gray-500 mt-0.5">
+                업종별 학습 데이터 → 학습 과정 → AI 응답 결과를 바로 확인하세요.
+              </p>
+            </div>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">무료 3개</Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-500 text-xs">전체 6개 업종</Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-500 text-xs">전체 9개 업종</Badge>
           </div>
+        </div>
+      </div>
+
+      {/* 기업·공장 특화 AI — 최상단 노출 */}
+      <div className="px-6 pb-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Factory className="size-4 text-blue-600" />
+          <h2 className="text-sm font-bold text-gray-800">기업·공장 특화 AI</h2>
+          <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px]">기술 특화</Badge>
+          <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">전체 무료</Badge>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {ENTERPRISE_INDUSTRIES.map((demo, i) => (
+            <IndustryCard key={demo.id} demo={demo} index={i} />
+          ))}
+        </div>
+      </div>
+
+      {/* 업종별 AI 데모 */}
+      <div className="px-6 pb-2">
+        <div className="flex items-center gap-2 mb-3">
+          <h2 className="text-sm font-bold text-gray-800">업종별 AI 데모</h2>
+          <Badge variant="secondary" className="text-[10px]">서비스·기술·동작</Badge>
         </div>
       </div>
 
