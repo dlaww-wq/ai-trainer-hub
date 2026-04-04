@@ -42,4 +42,4 @@ USER nextjs
 
 EXPOSE 3000
 
-CMD ["sh", "-c", "prisma db push --skip-generate && node server.js"]
+CMD ["sh", "-c", "[ -n \"$DATABASE_URL\" ] && prisma db push --skip-generate; node server.js"]
