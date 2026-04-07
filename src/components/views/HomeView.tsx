@@ -352,10 +352,10 @@ function IndustryCard({ demo, index }: { demo: IndustryDemo; index: number }) {
         </div>
       </div>
 
-      {/* Body: Left 50% + Right 50% */}
-      <div className="flex divide-x divide-gray-100">
+      {/* Body: Left 50% + Right 50% — 모바일에서는 세로 스택 */}
+      <div className="flex flex-col md:flex-row md:divide-x divide-gray-100">
         {/* LEFT: 학습 데이터 + 학습 과정 */}
-        <div className="w-1/2 p-4 space-y-3">
+        <div className="w-full md:w-1/2 p-4 space-y-3 border-b border-gray-100 md:border-b-0">
           {/* 학습 데이터 */}
           <div>
             <div className="flex items-center gap-1.5 mb-1.5">
@@ -390,7 +390,7 @@ function IndustryCard({ demo, index }: { demo: IndustryDemo; index: number }) {
         </div>
 
         {/* RIGHT: 결과 미리보기 (채팅) */}
-        <div className="w-1/2 p-4 flex flex-col">
+        <div className="w-full md:w-1/2 p-4 flex flex-col">
           <div className="flex items-center gap-1.5 mb-2">
             <MessageSquare className="size-3.5 text-emerald-500" />
             <span className="text-[11px] font-bold text-emerald-600">결과 미리보기</span>
@@ -460,70 +460,71 @@ export default function HomeView() {
 
   return (
     <div className="h-full overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
-      <div className="px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
+
+      {/* ── 헤더 ── */}
+      <div className="px-4 md:px-6 pt-4 md:pt-6 pb-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* 성과 패널 토글 — 데스크탑만 */}
             <button
               onClick={toggleSidebar}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors text-xs font-medium"
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 text-gray-500 hover:text-gray-800 hover:bg-gray-50 transition-colors text-xs font-medium"
               title={sidebarCollapsed ? "학습 성과 패널 열기" : "학습 성과 패널 닫기"}
             >
               {sidebarCollapsed ? <PanelLeft className="size-3.5" /> : <PanelLeftClose className="size-3.5" />}
               {sidebarCollapsed ? "성과 패널" : "패널 닫기"}
             </button>
             <div>
-              <h1 className="text-xl font-bold text-gray-900">AI가 고객을 응대합니다</h1>
-              <p className="text-sm text-gray-500 mt-0.5">
+              <h1 className="text-lg md:text-xl font-bold text-gray-900">AI가 고객을 응대합니다</h1>
+              <p className="text-xs md:text-sm text-gray-500 mt-0.5 hidden sm:block">
                 업종별 학습 데이터 → 학습 과정 → AI 응답 결과를 바로 확인하세요.
               </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-xs">무료 3개</Badge>
-            <Badge variant="secondary" className="bg-gray-100 text-gray-500 text-xs">전체 9개 업종</Badge>
+            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 text-[10px] md:text-xs">무료 3개</Badge>
+            <Badge variant="secondary" className="bg-gray-100 text-gray-500 text-[10px] md:text-xs">전체 9개 업종</Badge>
           </div>
         </div>
       </div>
 
-      {/* 기업·공장 특화 AI — 최상단 노출 */}
-      <div className="px-6 pb-5">
+      {/* ── 기업·공장 특화 AI ── */}
+      <div className="px-4 md:px-6 pb-5">
         <div className="flex items-center gap-2 mb-3">
           <Factory className="size-4 text-blue-600" />
           <h2 className="text-sm font-bold text-gray-800">기업·공장 특화 AI</h2>
           <Badge className="bg-blue-100 text-blue-700 border-0 text-[10px]">기술 특화</Badge>
-          <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px]">전체 무료</Badge>
+          <Badge className="bg-emerald-100 text-emerald-700 border-0 text-[10px] hidden sm:inline-flex">전체 무료</Badge>
         </div>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {ENTERPRISE_INDUSTRIES.map((demo, i) => (
             <IndustryCard key={demo.id} demo={demo} index={i} />
           ))}
         </div>
       </div>
 
-      {/* 업종별 AI 데모 */}
-      <div className="px-6 pb-2">
+      {/* ── 업종별 AI 데모 ── */}
+      <div className="px-4 md:px-6 pb-2">
         <div className="flex items-center gap-2 mb-3">
           <h2 className="text-sm font-bold text-gray-800">업종별 AI 데모</h2>
           <Badge variant="secondary" className="text-[10px]">서비스·기술·동작</Badge>
         </div>
       </div>
-
-      {/* Grid: 3 columns × 2 rows */}
-      <div className="px-6 pb-6">
-        <div className="grid grid-cols-3 gap-4">
+      <div className="px-4 md:px-6 pb-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {INDUSTRIES.map((demo, i) => (
             <IndustryCard key={demo.id} demo={demo} index={i} />
           ))}
         </div>
       </div>
 
-      {/* 추천 템플릿 3개 — 퍼포먼스 페이지 인라인 표시 */}
-      <div className="px-6 pb-6">
+      {/* ── 추천 학습 템플릿 ── */}
+      <div className="px-4 md:px-6 pb-6">
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <Layers className="size-4 text-indigo-500" />
             <h2 className="text-sm font-bold text-gray-800">추천 학습 템플릿</h2>
-            <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[10px]">바로 시작 가능</Badge>
+            <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[10px] hidden sm:inline-flex">바로 시작 가능</Badge>
           </div>
           <button
             onClick={() => router.push("/templates")}
@@ -532,8 +533,8 @@ export default function HomeView() {
             전체 보기 <ChevronRight className="size-3" />
           </button>
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          {featuredTemplates.map(({ cat, sub, tpl, CatIcon }) => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {featuredTemplates.map(({ cat, tpl, CatIcon }) => (
             <div
               key={tpl!.id}
               className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
@@ -541,17 +542,17 @@ export default function HomeView() {
             >
               {/* 헤더 */}
               <div className={`flex items-center justify-between px-4 py-2.5 bg-gradient-to-r ${cat.gradient} text-white`}>
-                <div className="flex items-center gap-2">
-                  <CatIcon className="size-4" />
-                  <span className="text-sm font-bold">{tpl!.name}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <CatIcon className="size-4 shrink-0" />
+                  <span className="text-sm font-bold truncate">{tpl!.name}</span>
                 </div>
-                <Badge className="bg-white/20 text-white border-0 text-[9px]">
+                <Badge className="bg-white/20 text-white border-0 text-[9px] shrink-0 ml-2">
                   {tpl!.tier === "free" ? "무료" : tpl!.tier === "starter" ? "스타터" : "프로"}
                 </Badge>
               </div>
               {/* 바디 */}
-              <div className="flex divide-x divide-gray-100">
-                <div className="w-1/2 p-3 space-y-2">
+              <div className="flex flex-col sm:flex-row sm:divide-x divide-gray-100">
+                <div className="w-full sm:w-1/2 p-3 space-y-2 border-b border-gray-100 sm:border-b-0">
                   <div>
                     <div className="flex items-center gap-1 mb-1">
                       <Database className="size-3 text-blue-500" />
@@ -567,12 +568,12 @@ export default function HomeView() {
                     </ul>
                   </div>
                 </div>
-                <div className="w-1/2 p-3">
+                <div className="w-full sm:w-1/2 p-3">
                   <div className="flex items-center gap-1 mb-1">
                     <MessageSquare className="size-3 text-emerald-500" />
                     <span className="text-[10px] font-bold text-emerald-600">학습 후</span>
                   </div>
-                  <p className="text-[10px] text-gray-500 leading-snug line-clamp-4">{tpl!.beforeAfter.after}</p>
+                  <p className="text-[10px] text-gray-500 leading-snug line-clamp-3">{tpl!.beforeAfter.after}</p>
                 </div>
               </div>
             </div>
@@ -580,14 +581,14 @@ export default function HomeView() {
         </div>
       </div>
 
-      {/* CTA */}
-      <div className="px-6 pb-8">
-        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-6 flex items-center justify-between">
+      {/* ── CTA ── */}
+      <div className="px-4 md:px-6 pb-8">
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-xl p-4 md:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h3 className="text-sm font-bold text-gray-800">네이버 플레이스에 AI 상담을 연결하세요</h3>
             <p className="text-xs text-gray-500 mt-1">홈페이지 URL만 등록하면, 고객이 방문할 때 학습된 AI가 자동 응대합니다.</p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shrink-0">
+          <button className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 shrink-0 w-full sm:w-auto">
             무료로 시작하기 <ArrowRight className="size-4" />
           </button>
         </div>

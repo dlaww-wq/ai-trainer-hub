@@ -140,4 +140,9 @@
   .perspective-\[1000px\] {
     perspective: 1000px;
   }
+
+  /* iOS Safe Area — 하단 홈 인디케이터 공간 확보 */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
 }

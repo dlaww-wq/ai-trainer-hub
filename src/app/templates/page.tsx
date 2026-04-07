@@ -203,16 +203,16 @@ function TemplateModal({
   const CatIcon = CATEGORY_ICONS[cat.id] || FileText;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 sm:p-4" onClick={onClose}>
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl"
+        initial={{ opacity: 0, y: 40 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: 40 }}
+        className="h-[92vh] sm:max-h-[90vh] w-full sm:max-w-3xl overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className={`bg-gradient-to-r ${cat.gradient} p-6 text-white rounded-t-2xl`}>
+        <div className={`bg-gradient-to-r ${cat.gradient} p-4 md:p-6 text-white rounded-t-2xl`}>
           <div className="flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
@@ -237,11 +237,11 @@ function TemplateModal({
           </div>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-6 space-y-5 md:space-y-6">
           {/* Before/After */}
           <div>
             <h3 className="text-sm font-bold mb-3">학습 전 vs 학습 후</h3>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="rounded-lg bg-red-50 p-4 border border-red-100">
                 <span className="text-[10px] font-bold text-red-400 uppercase">Before</span>
                 <p className="text-sm text-gray-600 mt-2">{template.beforeAfter.before}</p>
@@ -346,18 +346,18 @@ function CategorySection({
       {/* Category Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center gap-4 mb-4 group"
+        className="w-full flex items-center gap-3 mb-4 group"
       >
-        <div className={`flex items-center justify-center size-12 rounded-xl bg-gradient-to-br ${cat.gradient} text-white`}>
-          <CatIcon className="size-6" />
+        <div className={`flex items-center justify-center size-10 md:size-12 rounded-xl bg-gradient-to-br ${cat.gradient} text-white shrink-0`}>
+          <CatIcon className="size-5 md:size-6" />
         </div>
-        <div className="text-left flex-1">
-          <h2 className="text-xl font-bold">{cat.name}</h2>
-          <p className="text-sm text-gray-500">{cat.description}</p>
+        <div className="text-left flex-1 min-w-0">
+          <h2 className="text-base md:text-xl font-bold truncate">{cat.name}</h2>
+          <p className="text-xs md:text-sm text-gray-500 hidden sm:block">{cat.description}</p>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary">{cat.subcategories.reduce((a, s) => a + s.templates.length, 0)}개 템플릿</Badge>
-          <ChevronDown className={`size-5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <div className="flex items-center gap-1.5 shrink-0">
+          <Badge variant="secondary" className="text-[10px] md:text-xs">{cat.subcategories.reduce((a, s) => a + s.templates.length, 0)}개</Badge>
+          <ChevronDown className={`size-4 md:size-5 text-gray-400 transition-transform ${expanded ? "rotate-180" : ""}`} />
         </div>
       </button>
 
@@ -418,10 +418,10 @@ function CategorySection({
                         </div>
                       </div>
 
-                      {/* 카드 바디: 좌 / 우 */}
-                      <div className="flex divide-x divide-gray-100">
+                      {/* 카드 바디: 좌 / 우 — 모바일 세로 스택 */}
+                      <div className="flex flex-col sm:flex-row sm:divide-x divide-gray-100">
                         {/* 좌: 학습 데이터 + 단계 */}
-                        <div className="w-1/2 p-4 space-y-3">
+                        <div className="w-full sm:w-1/2 p-4 space-y-3 border-b border-gray-100 sm:border-b-0">
                           <div>
                             <div className="flex items-center gap-1.5 mb-1.5">
                               <Database className="size-3.5 text-blue-500" />
@@ -453,7 +453,7 @@ function CategorySection({
                         </div>
 
                         {/* 우: Before → After 미리보기 */}
-                        <div className="w-1/2 p-4 flex flex-col">
+                        <div className="w-full sm:w-1/2 p-4 flex flex-col">
                           <div className="flex items-center gap-1.5 mb-2">
                             <MessageSquare className="size-3.5 text-emerald-500" />
                             <span className="text-[11px] font-bold text-emerald-600">학습 전 → 후</span>
@@ -523,34 +523,34 @@ export default function TemplatesPage() {
     <div className="min-h-screen bg-white">
       {/* Hero Header */}
       <div className="bg-gradient-to-br from-indigo-600 via-purple-600 to-fuchsia-500 text-white">
-        <div className="mx-auto max-w-6xl px-6 py-12">
-          <h1 className="text-3xl font-bold">학습 템플릿</h1>
-          <p className="mt-2 text-indigo-100 max-w-2xl">
+        <div className="mx-auto max-w-6xl px-4 md:px-6 py-6 md:py-12">
+          <h1 className="text-2xl md:text-3xl font-bold">학습 템플릿</h1>
+          <p className="mt-2 text-indigo-100 max-w-2xl text-sm md:text-base hidden sm:block">
             {totalCount}개 템플릿으로 AI를 학습시키세요.
             텍스트, 이미지, 데이터, 음성, 행동 — 5가지 방법으로 모든 업종의 AI를 만들 수 있습니다.
           </p>
-          <div className="flex gap-3 mt-4">
-            <Badge className="bg-white/20 text-white border-0">{totalCount}개 템플릿</Badge>
-            <Badge className="bg-emerald-400/30 text-white border-0">{freeCount}개 무료</Badge>
-            <Badge className="bg-white/20 text-white border-0">5가지 학습 방법</Badge>
-            <Badge className="bg-white/20 text-white border-0">13개 업종</Badge>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <Badge className="bg-white/20 text-white border-0 text-[10px] md:text-xs">{totalCount}개 템플릿</Badge>
+            <Badge className="bg-emerald-400/30 text-white border-0 text-[10px] md:text-xs">{freeCount}개 무료</Badge>
+            <Badge className="bg-white/20 text-white border-0 text-[10px] md:text-xs hidden sm:inline-flex">5가지 학습 방법</Badge>
+            <Badge className="bg-white/20 text-white border-0 text-[10px] md:text-xs hidden sm:inline-flex">13개 업종</Badge>
           </div>
 
           {/* Search */}
-          <div className="mt-6 relative max-w-lg">
+          <div className="mt-4 relative max-w-lg">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-indigo-300" />
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="카페, 불량검출, 로봇, 법률, 회의록..."
-              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-indigo-300 focus:bg-white/20"
+              placeholder="카페, 불량검출, 로봇, 법률..."
+              className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-indigo-300 focus:bg-white/20 text-sm"
             />
           </div>
         </div>
       </div>
 
       {/* Content */}
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-6xl px-4 md:px-6 py-4 md:py-8">
         {/* Search Results */}
         {searchResults ? (
           <div>

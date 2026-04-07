@@ -17,6 +17,12 @@ export const metadata: Metadata = {
   title: "AI Trainer Hub — AI 학습 운영 플랫폼",
   description:
     "AI 에이전트 운영, 학습 템플릿 관리, 실시간 퍼포먼스 모니터링을 한 화면에서.",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default function RootLayout({
@@ -29,7 +35,7 @@ export default function RootLayout({
       lang="ko"
       className={`${geistSans.variable} ${geistMono.variable} antialiased`}
     >
-      <body className="h-screen overflow-hidden font-[family-name:var(--font-geist-sans)]">
+      <body className="h-[100dvh] overflow-hidden font-[family-name:var(--font-geist-sans)]">
         <AppShell>{children}</AppShell>
       </body>
     </html>
