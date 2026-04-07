@@ -33,7 +33,7 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
   activeView: "home",
   setActiveView: (v) => set({ activeView: v }),
 
-  sidebarCollapsed: false,
+  sidebarCollapsed: true,
   toggleSidebar: () => set((s) => ({ sidebarCollapsed: !s.sidebarCollapsed })),
 
   bottomPanelOpen: true,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Coffee,
@@ -21,9 +22,41 @@ import {
   ScanSearch,
   Cpu,
   Factory,
+  Layers,
+  FileText,
+  Image,
+  BarChart3,
+  Mic,
+  Palette,
+  Video,
+  AudioLines,
+  Combine,
+  Workflow,
+  Code,
+  Smartphone,
+  FlaskConical,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useWorkspace } from "@/store/workspace";
+import { CATALOG } from "@/lib/template-catalog";
+
+const CAT_ICONS: Record<string, React.ElementType> = {
+  "text-learning": FileText,
+  "image-learning": Image,
+  "data-learning": BarChart3,
+  "audio-learning": Mic,
+  "action-learning": Cpu,
+  "image-gen-learning": Palette,
+  "video-learning": Video,
+  "voice-clone-learning": AudioLines,
+  "multimodal-learning": Combine,
+  "agent-learning": Workflow,
+  "rag-learning": Database,
+  "finetune-learning": Wrench,
+  "edge-learning": Smartphone,
+  "synthetic-learning": FlaskConical,
+  "code-learning": Code,
+};
 
 /* ------------------------------------------------------------------ */
 /*  업종별 데모 데이터 (3x2 = 6개, 서비스/기술/동작 혼합)                  */
@@ -415,6 +448,15 @@ function IndustryCard({ demo, index }: { demo: IndustryDemo; index: number }) {
 /* ------------------------------------------------------------------ */
 export default function HomeView() {
   const { sidebarCollapsed, toggleSidebar } = useWorkspace();
+  const router = useRouter();
+
+  // 첫 3개 템플릿 추출 (카탈로그 첫 번째 카테고리의 첫 번째 서브카테고리 템플릿들)
+  const featuredTemplates = CATALOG.slice(0, 3).map((cat) => {
+    const firstSub = cat.subcategories[0];
+    const firstTpl = firstSub?.templates[0];
+    const CatIcon = CAT_ICONS[cat.id] || FileText;
+    return { cat, sub: firstSub, tpl: firstTpl, CatIcon };
+  }).filter((x) => x.tpl);
 
   return (
     <div className="h-full overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
@@ -471,6 +513,69 @@ export default function HomeView() {
         <div className="grid grid-cols-3 gap-4">
           {INDUSTRIES.map((demo, i) => (
             <IndustryCard key={demo.id} demo={demo} index={i} />
+          ))}
+        </div>
+      </div>
+
+      {/* 추천 템플릿 3개 — 퍼포먼스 페이지 인라인 표시 */}
+      <div className="px-6 pb-6">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Layers className="size-4 text-indigo-500" />
+            <h2 className="text-sm font-bold text-gray-800">추천 학습 템플릿</h2>
+            <Badge className="bg-indigo-100 text-indigo-700 border-0 text-[10px]">바로 시작 가능</Badge>
+          </div>
+          <button
+            onClick={() => router.push("/templates")}
+            className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+          >
+            전체 보기 <ChevronRight className="size-3" />
+          </button>
+        </div>
+        <div className="grid grid-cols-3 gap-4">
+          {featuredTemplates.map(({ cat, sub, tpl, CatIcon }) => (
+            <div
+              key={tpl!.id}
+              className="rounded-xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all cursor-pointer"
+              onClick={() => router.push(`/learn?template=${tpl!.id}`)}
+            >
+              {/* 헤더 */}
+              <div className={`flex items-center justify-between px-4 py-2.5 bg-gradient-to-r ${cat.gradient} text-white`}>
+                <div className="flex items-center gap-2">
+                  <CatIcon className="size-4" />
+                  <span className="text-sm font-bold">{tpl!.name}</span>
+                </div>
+                <Badge className="bg-white/20 text-white border-0 text-[9px]">
+                  {tpl!.tier === "free" ? "무료" : tpl!.tier === "starter" ? "스타터" : "프로"}
+                </Badge>
+              </div>
+              {/* 바디 */}
+              <div className="flex divide-x divide-gray-100">
+                <div className="w-1/2 p-3 space-y-2">
+                  <div>
+                    <div className="flex items-center gap-1 mb-1">
+                      <Database className="size-3 text-blue-500" />
+                      <span className="text-[10px] font-bold text-blue-600">학습 데이터</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {tpl!.dataRequirements.slice(0, 3).map((r, i) => (
+                        <li key={i} className="flex items-start gap-1 text-[10px] text-gray-500">
+                          <span className={r.required ? "text-red-400" : "text-gray-300"}>•</span>
+                          <span className="leading-snug line-clamp-1">{r.item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+                <div className="w-1/2 p-3">
+                  <div className="flex items-center gap-1 mb-1">
+                    <MessageSquare className="size-3 text-emerald-500" />
+                    <span className="text-[10px] font-bold text-emerald-600">학습 후</span>
+                  </div>
+                  <p className="text-[10px] text-gray-500 leading-snug line-clamp-4">{tpl!.beforeAfter.after}</p>
+                </div>
+              </div>
+            </div>
           ))}
         </div>
       </div>
