@@ -5,17 +5,16 @@ import {
   LayoutDashboard,
   Layers,
   BookOpen,
-  Sparkles,
+  Lightbulb,
   Camera,
-  Settings,
 } from "lucide-react";
 import { useWorkspace, type ViewId } from "@/store/workspace";
 
 const NAV_ITEMS: { id: ViewId; icon: React.ElementType; label: string; href: string }[] = [
-  { id: "home",        icon: LayoutDashboard, label: "퍼포먼스", href: "/" },
+  { id: "home",        icon: LayoutDashboard, label: "홈",       href: "/" },
   { id: "templates",   icon: Layers,          label: "템플릿",   href: "/templates" },
   { id: "my-learning", icon: BookOpen,         label: "내 학습",  href: "/my-learning" },
-  { id: "onboarding",  icon: Sparkles,         label: "온보딩",   href: "/onboarding" },
+  { id: "home" as ViewId, icon: Lightbulb,    label: "솔루션",   href: "/solutions" },
   { id: "camera",      icon: Camera,           label: "카메라",   href: "/camera" },
 ];
 
