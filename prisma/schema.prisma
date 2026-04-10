@@ -30,6 +30,7 @@ model User {
   chatMessages  ChatMessage[]
   storeAgents   StoreAgent[]
   tokenUsages   TokenUsage[]
+  subscription  Subscription?
 }
 
 model Account {
@@ -159,6 +160,7 @@ model StoreAgent {
   user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   chunks KnowledgeChunk[]
   convos StoreConversation[]
+  escalations EscalationEvent[]
 }
 
 // 학습된 지식 청크 (RAG용)
@@ -205,3 +207,46 @@ model TokenUsage {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+// ─── 에스컬레이션 이벤트 ────────────────────────────────────
+
+model EscalationEvent {
+  id           String @id @default(cuid())
+  storeAgentId String
+  sessionId    String
+  customerMsg  String // 고객의 마지막 메시지
+  aiResponse   String // AI가 에스컬레이션 판단한 응답
+  status       String @default("pending") // pending | notified | resolved | ignored
+  notifyMethod String @default("none") // none | email | kakao | sms
+  resolvedAt   DateTime?
+  ownerNote    String @default("")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  storeAgent StoreAgent @relation(fields: [storeAgentId], references: [id], onDelete: Cascade)
+}
+
+// ─── 구독/결제 ──────────────────────────────────────────────
+
+model Subscription {
+  id         String @id @default(cuid())
+  userId     String @unique
+  plan       String @default("free") // free | basic | standard | premium
+  status     String @default("active") // active | paused | cancelled
+  monthlyChats Int  @default(100) // 플랜별 월 한도
+  usedChats    Int  @default(0)
+  billingStart DateTime @default(now())
+  billingEnd   DateTime?
+
+  tossOrderId    String? @unique
+  tossPaymentKey String?
+  amount         Int     @default(0) // KRW
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// User 모델에 Subscription 추가를 위한 relation은 User 모델에서 처리됨
