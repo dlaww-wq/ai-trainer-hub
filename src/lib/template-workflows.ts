@@ -49,6 +49,7 @@ export interface WorkflowSet {
   subtitle: string;
   description: string;
   icon: string; // lucide icon name
+  illustration: string; // /images/workflows/xxx.svg
   gradient: string;
   audience: TargetAudience;
   difficulty: WorkflowDifficulty;
@@ -81,6 +82,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "고객응대부터 리뷰 관리까지 카페 운영 AI 자동화",
     description: "카카오채널 자동응답, 메뉴 추천, 리뷰 답글, 매출 예측까지 — 사장님이 잠든 사이에도 카페가 돌아가게 만듭니다. 야간 CS 100% 커버, 월 CS비용 70% 절감.",
     icon: "Coffee",
+    illustration: "/images/workflows/cafe.svg",
     gradient: "from-amber-500 to-orange-600",
     audience: "self-employed",
     difficulty: "beginner",
@@ -189,6 +191,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "주문·배송·환불 문의 AI가 24시간 처리",
     description: "스마트스토어/쿠팡 셀러를 위한 완전 자동 CS. 주문 상태 조회, 환불 규정 안내, 상품 추천까지 AI가 처리. 에스컬레이션 시 사장님에게 즉시 알림.",
     icon: "ShoppingCart",
+    illustration: "/images/workflows/ecommerce.svg",
     gradient: "from-blue-500 to-cyan-600",
     audience: "self-employed",
     difficulty: "intermediate",
@@ -297,6 +300,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "불량 검출 + 이상 탐지 + 생산 계획 최적화",
     description: "제조업 현장에 AI를 도입합니다. 카메라로 불량품을 실시간 검출하고, 센서 데이터로 설비 이상을 사전 감지하며, 수요 기반 생산 계획을 최적화합니다.",
     icon: "Factory",
+    illustration: "/images/workflows/factory.svg",
     gradient: "from-slate-600 to-zinc-800",
     audience: "enterprise",
     difficulty: "advanced",
@@ -466,6 +470,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "취업용 AI 프로젝트 포트폴리오 4주 완성",
     description: "AI 엔지니어·데이터 사이언티스트 취업을 위한 실전 포트폴리오. 텍스트·이미지·데이터 3가지 AI를 직접 만들어 GitHub에 올리고 면접에서 어필하세요.",
     icon: "GraduationCap",
+    illustration: "/images/workflows/portfolio.svg",
     gradient: "from-violet-500 to-purple-600",
     audience: "student",
     difficulty: "intermediate",
@@ -574,6 +579,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "아이디어 → AI 제품 → 첫 매출까지 6주",
     description: "코딩 경험 없이도 AI SaaS 제품을 만들어 첫 매출을 올립니다. 아이디어 검증 → MVP 개발 → 런칭 → 첫 고객 확보까지 단계별로 안내합니다.",
     icon: "Rocket",
+    illustration: "/images/workflows/solo-mvp.svg",
     gradient: "from-rose-500 to-pink-600",
     audience: "general",
     difficulty: "beginner",
@@ -712,6 +718,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "매물 문의 24시간 자동 응대 + 시세 분석",
     description: "부동산 중개사를 위한 AI. 매물 정보 자동 안내, 시세 질문 응대, 방문 예약 자동화. 네이버 부동산/직방 매물 연동으로 항상 최신 정보 유지.",
     icon: "Building2",
+    illustration: "/images/workflows/realestate.svg",
     gradient: "from-emerald-500 to-teal-600",
     audience: "self-employed",
     difficulty: "intermediate",
@@ -820,6 +827,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "음성 분석 + 자동 응대 + 상담원 지원 AI",
     description: "기존 콜센터에 AI를 도입합니다. 고객 음성을 실시간 분석하고, 반복 문의는 AI가 처리하며, 복잡한 건은 상담원에게 실시간 정보를 제공합니다.",
     icon: "Headphones",
+    illustration: "/images/workflows/callcenter.svg",
     gradient: "from-sky-500 to-blue-700",
     audience: "enterprise",
     difficulty: "advanced",
@@ -958,6 +966,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "계약서 검토 + 법률 상담 + 문서 자동 생성",
     description: "법률 사무소 또는 기업 법무팀을 위한 AI. 계약서를 자동 검토하고, 기본 법률 상담을 처리하며, 표준 계약서를 자동 생성합니다.",
     icon: "Scale",
+    illustration: "/images/workflows/legal.svg",
     gradient: "from-indigo-600 to-blue-800",
     audience: "general",
     difficulty: "advanced",
@@ -1096,6 +1105,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "환자 문의 자동 응대 + 예약 + 사후 관리",
     description: "병원·의원을 위한 AI. 진료 안내, 예약 관리, 수술 후 관리 안내를 자동화합니다. 의료법 준수 면책 조항 내장. 환자 만족도 향상 + 행정 업무 50% 절감.",
     icon: "Stethoscope",
+    illustration: "/images/workflows/medical.svg",
     gradient: "from-cyan-500 to-blue-600",
     audience: "self-employed",
     difficulty: "intermediate",
@@ -1219,6 +1229,7 @@ export const WORKFLOW_SETS: WorkflowSet[] = [
     subtitle: "콘텐츠 생성 + 예약 발행 + 성과 분석 AI",
     description: "인스타그램, 블로그, 유튜브 콘텐츠를 AI가 자동 생성하고 예약 발행합니다. 트렌드 분석 → 콘텐츠 기획 → 작성 → 발행 → 성과 분석 전 과정 자동화.",
     icon: "Share2",
+    illustration: "/images/workflows/sns-marketing.svg",
     gradient: "from-pink-500 to-rose-600",
     audience: "general",
     difficulty: "beginner",
