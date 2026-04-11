@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useCallback } from "react";
 import Link from "next/link";
+import NextImage from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -569,9 +570,19 @@ function WorkflowModal({
         className="h-[92vh] sm:max-h-[90vh] w-full sm:max-w-4xl overflow-y-auto rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className={`bg-gradient-to-r ${workflow.gradient} p-4 md:p-6 text-white rounded-t-2xl`}>
-          <div className="flex items-start justify-between">
+        {/* Header with Illustration */}
+        <div className={`relative bg-gradient-to-r ${workflow.gradient} p-4 md:p-6 text-white rounded-t-2xl overflow-hidden`}>
+          {/* Background Illustration */}
+          <div className="absolute right-0 top-0 h-full w-1/3 opacity-15 pointer-events-none">
+            <NextImage
+              src={workflow.illustration}
+              alt=""
+              width={300}
+              height={225}
+              className="h-full w-full object-contain object-right"
+            />
+          </div>
+          <div className="relative z-10 flex items-start justify-between">
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <Icon className="size-6" />
@@ -589,7 +600,7 @@ function WorkflowModal({
               <X className="size-5" />
             </button>
           </div>
-          <div className="flex flex-wrap gap-2 mt-4">
+          <div className="relative z-10 flex flex-wrap gap-2 mt-4">
             <Badge className="bg-white/20 text-white border-0 text-[10px]">
               <Calendar className="size-3 mr-1" />{workflow.estimatedWeeks}주 로드맵
             </Badge>
@@ -859,18 +870,30 @@ function WorkflowSetsSection({
               onClick={() => onSelectWorkflow(w)}
               className="cursor-pointer rounded-xl border overflow-hidden hover:shadow-lg transition-all group"
             >
-              {/* Card Header */}
-              <div className={`bg-gradient-to-r ${w.gradient} p-4 text-white`}>
-                <div className="flex items-start justify-between">
-                  <Icon className="size-8 opacity-80" />
-                  <div className="flex gap-1">
-                    <Badge className={`${AUDIENCE_COLOR[w.audience]} border-0 text-[9px]`}>
-                      {getAudienceLabel(w.audience)}
-                    </Badge>
-                  </div>
+              {/* Card Header with Illustration */}
+              <div className={`relative bg-gradient-to-r ${w.gradient} p-4 text-white overflow-hidden`}>
+                {/* Background Illustration */}
+                <div className="absolute right-0 top-0 h-full w-1/2 opacity-20 pointer-events-none">
+                  <NextImage
+                    src={w.illustration}
+                    alt=""
+                    width={200}
+                    height={150}
+                    className="h-full w-full object-contain object-right"
+                  />
                 </div>
-                <h3 className="text-base font-bold mt-2">{w.name}</h3>
-                <p className="text-[11px] opacity-80 mt-0.5 line-clamp-1">{w.subtitle}</p>
+                <div className="relative z-10">
+                  <div className="flex items-start justify-between">
+                    <Icon className="size-8 opacity-80" />
+                    <div className="flex gap-1">
+                      <Badge className={`${AUDIENCE_COLOR[w.audience]} border-0 text-[9px]`}>
+                        {getAudienceLabel(w.audience)}
+                      </Badge>
+                    </div>
+                  </div>
+                  <h3 className="text-base font-bold mt-2">{w.name}</h3>
+                  <p className="text-[11px] opacity-80 mt-0.5 line-clamp-1">{w.subtitle}</p>
+                </div>
               </div>
 
               {/* Card Body */}
@@ -1335,7 +1358,7 @@ export default function TemplatesPage() {
             </div>
             {searchResults.length === 0 ? (
               <div className="py-20 text-center text-gray-400">
-                <Search className="size-10 mx-auto mb-3 opacity-30" />
+                <NextImage src="/images/empty-states/no-results.svg" alt="" width={180} height={144} className="mx-auto mb-4" />
                 <p className="font-medium">검색 결과가 없습니다.</p>
                 <p className="text-sm mt-1">다른 키워드를 시도하거나 필터를 조정해보세요.</p>
                 {hasFilter && (
@@ -1443,7 +1466,7 @@ export default function TemplatesPage() {
             {/* 필터 결과 없음 */}
             {hasFilter && filteredCount === 0 && (
               <div className="py-20 text-center text-gray-400">
-                <SlidersHorizontal className="size-10 mx-auto mb-3 opacity-30" />
+                <NextImage src="/images/empty-states/no-results.svg" alt="" width={180} height={144} className="mx-auto mb-4" />
                 <p className="font-medium">조건에 맞는 템플릿이 없습니다.</p>
                 <Button
                   variant="outline"
