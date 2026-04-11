@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "gemini:harness": "powershell -ExecutionPolicy Bypass -File scripts/gemini-harness.ps1",
+    "gemini:preset": "powershell -ExecutionPolicy Bypass -File scripts/gemini-preset.ps1",
+    "gemini:fix": "npm run gemini:preset -- -Preset fix",
+    "gemini:feature": "npm run gemini:preset -- -Preset feature",
+    "gemini:review": "npm run gemini:preset -- -Preset review",
+    "gemini:learn": "npm run gemini:preset -- -Preset learn",
+    "gemini:auth": "npm run gemini:preset -- -Preset auth",
+    "gemini:catalog": "npm run gemini:preset -- -Preset catalog",
+    "gemini:log": "powershell -ExecutionPolicy Bypass -File scripts/gemini-log.ps1"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.64",
