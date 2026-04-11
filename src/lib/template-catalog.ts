@@ -74,6 +74,8 @@ export interface DataRequirement {
   required: boolean;
   description: string;
   example: string;
+  effectBefore?: string; // 추가됨
+  effectAfter?: string;  // 추가됨
 }
 
 /* ================================================================== */
@@ -2678,4 +2680,15 @@ export function getTemplatesByIndustry(industry: string): LearnTemplate[] {
     }
   }
   return result;
+}
+
+/** ID로 템플릿 검색 */
+export function getTemplateById(id: string): LearnTemplate | undefined {
+  for (const cat of CATALOG) {
+    for (const sub of cat.subcategories) {
+      const found = sub.templates.find((tpl) => tpl.id === id);
+      if (found) return found;
+    }
+  }
+  return undefined;
 }
