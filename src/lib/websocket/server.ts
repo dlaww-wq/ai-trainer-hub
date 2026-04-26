@@ -1,5 +1,7 @@
 // WebSocket 서버 설정 (Socket.io)
 import { Server as HTTPServer } from 'http';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error socket.io 패키지 미설치 (선택적 의존성)
 import { Socket as ServerSocket, Server } from 'socket.io';
 
 export interface LearnSession {
@@ -47,7 +49,7 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
     console.log(`[WebSocket] 사용자 연결: ${socket.id}`);
 
     // 협업 세션 생성
-    socket.on('create_session', (data: { name: string; creator: string }, callback) => {
+    socket.on('create_session', (data: { name: string; creator: string }, callback: (res: { success: boolean; sessionId?: string }) => void) => {
       const sessionId = `session_${Date.now()}`;
       const newSession: LearnSession = {
         id: sessionId,
@@ -75,7 +77,7 @@ export function initializeWebSocket(httpServer: HTTPServer): Server {
     });
 
     // 협업 세션 참여
-    socket.on('join_session', (data: { sessionId: string; username: string }, callback) => {
+    socket.on('join_session', (data: { sessionId: string; username: string }, callback: (res: { success: boolean; error?: string; session?: LearnSession }) => void) => {
       const session = sessions.get(data.sessionId);
       if (!session) {
         callback({ success: false, error: '세션을 찾을 수 없습니다' });

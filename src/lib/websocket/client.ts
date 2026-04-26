@@ -1,4 +1,6 @@
 // WebSocket 클라이언트 (클라이언트 사이드)
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error socket.io-client 패키지 미설치 (선택적 의존성)
 import { io, Socket } from 'socket.io-client';
 
 export interface ClientSession {

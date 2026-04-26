@@ -3,12 +3,15 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { searchChunks } from "@/lib/rag";
 
 interface ChatContext {
   industry?: string;
   businessName?: string;
   purpose?: string;
   templateId?: string;
+  storeId?: string;
 }
 
 interface ChatMessage {
@@ -106,6 +109,38 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ── storeId 기반 RAG 모드 ──────────────────────────────────
+    const storeId = context?.storeId;
+    let ragSystemPrompt: string | null = null;
+
+    if (storeId) {
+      try {
+        const store = await prisma.storeAgent.findUnique({
+          where: { id: storeId },
+          select: { businessName: true, businessType: true, systemPrompt: true },
+        });
+
+        if (store) {
+          const userQuery = messages[messages.length - 1]?.content ?? "";
+          const relevantChunks = await searchChunks(storeId, userQuery, 5);
+
+          const knowledgeSection =
+            relevantChunks.length > 0
+              ? `\n\n## 학습된 지식베이스\n${relevantChunks.join("\n\n---\n\n")}`
+              : "";
+
+          ragSystemPrompt = `${store.systemPrompt || `당신은 ${store.businessName}을 위한 AI 어시스턴트입니다.`}${knowledgeSection}
+
+## 응답 규칙
+- 위 지식베이스를 우선 참고하여 답변
+- 모르는 내용은 "잘 모르겠습니다. 직접 문의해주세요"라고 답변
+- 항상 한국어로 답변`;
+        }
+      } catch (err) {
+        console.warn("[chat] storeId RAG 조회 실패, 일반 모드로 진행:", err);
+      }
+    }
+
     // API 키 없으면 mock 모드
     if (!process.env.ANTHROPIC_API_KEY) {
       return mockStream(messages, context);
@@ -116,7 +151,7 @@ export async function POST(request: NextRequest) {
     });
 
     const model = process.env.AI_MODEL ?? "claude-sonnet-4-6";
-    const systemPrompt = buildSystemPrompt(context || {});
+    const systemPrompt = ragSystemPrompt ?? buildSystemPrompt(context || {});
 
     const filteredMessages = messages
       .filter((m) => m.role === "user" || m.role === "assistant")
