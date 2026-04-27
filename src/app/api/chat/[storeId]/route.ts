@@ -10,6 +10,7 @@ import { createAnthropic } from "@ai-sdk/anthropic";
 import { streamText } from "ai";
 import { prisma } from "@/lib/prisma";
 import { searchChunks } from "@/lib/rag";
+import { isUnanswered, escalate } from "@/lib/escalation";
 
 // ── 인메모리 Rate Limiter (IP당 분당 30회) ─────────────────
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -199,8 +200,22 @@ export async function POST(
       messages,
       maxOutputTokens: 800,
       temperature: 0.5,
-      onFinish: async ({ usage }) => {
+      onFinish: async ({ text, usage }) => {
         if (!store) return;
+
+        // ── 미답변 감지 → 사장님 카카오 알림 ─────────────
+        if (isUnanswered(text)) {
+          const userQuery = messages[messages.length - 1]?.content ?? "";
+          const sessionId = request.headers.get("x-session-id") ?? `anon_${Date.now()}`;
+          escalate({
+            storeAgentId: store.id,
+            sessionId,
+            customerMsg: userQuery,
+            aiResponse: text,
+          }).catch(() => {});
+        }
+
+        // ── 토큰 사용량 기록 ──────────────────────────────
         try {
           const inputTok = usage.inputTokens ?? 0;
           const outputTok = usage.outputTokens ?? 0;

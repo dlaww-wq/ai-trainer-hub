@@ -97,11 +97,33 @@ export async function GET(request: NextRequest) {
   const storeAgentId = request.nextUrl.searchParams.get("storeAgentId");
   const status = request.nextUrl.searchParams.get("status");
 
+  // 대시보드용: storeAgentId 없으면 세션 기반 전체 조회
   if (!storeAgentId) {
-    return NextResponse.json(
-      { error: "storeAgentId 파라미터가 필요합니다." },
-      { status: 400 }
-    );
+    try {
+      const { getServerSession } = await import("next-auth");
+      const { authOptions } = await import("@/lib/auth");
+      const session = await getServerSession(authOptions);
+      if (!session?.user?.id) {
+        return NextResponse.json({ error: "로그인 필요" }, { status: 401 });
+      }
+
+      const myStores = await prisma.storeAgent.findMany({
+        where: { userId: session.user.id },
+        select: { id: true },
+      });
+      const ids = myStores.map((s) => s.id);
+
+      const escalations = await prisma.escalationEvent.findMany({
+        where: { storeAgentId: { in: ids } },
+        include: { storeAgent: { select: { businessName: true } } },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      });
+
+      return NextResponse.json({ escalations });
+    } catch {
+      return NextResponse.json({ escalations: [], mode: "mock" });
+    }
   }
 
   try {
@@ -110,6 +132,7 @@ export async function GET(request: NextRequest) {
 
     const events = await prisma.escalationEvent.findMany({
       where,
+      include: { storeAgent: { select: { businessName: true } } },
       orderBy: { createdAt: "desc" },
       take: 50,
     });

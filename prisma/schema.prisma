@@ -151,6 +151,9 @@ model StoreAgent {
   systemPrompt String @default("")
   status       String @default("draft") // draft | active | paused
 
+  ownerPhone   String @default("") // 카카오 알림 수신 번호
+  ownerKakaoId String @default("") // 카카오 채널 수신자 ID
+
   totalChats   Int    @default(0)
   monthlyChats Int    @default(0)
 
@@ -220,6 +223,8 @@ model EscalationEvent {
   notifyMethod String @default("none") // none | email | kakao | sms
   resolvedAt   DateTime?
   ownerNote    String @default("")
+  ownerAnswer  String @default("") // 사장님이 카톡으로 답변한 내용
+  savedToKb    Boolean @default(false) // KB에 저장됐는지
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
