@@ -93,7 +93,7 @@ export const CATALOG: TopCategory[] = [
     description: "문서, 매뉴얼, FAQ, 대화 기록 등 텍스트 데이터로 AI를 학습시킵니다",
     color: "text-blue-600",
     gradient: "from-blue-500 to-indigo-600",
-    howItWorks: "텍스트를 AI에게 제공하면, AI가 패턴·규칙·지식을 추출하여 학습합니다. 프롬프트 설정 → Knowledge 업로드 → RAG 구성 순서로 정확도가 올라갑니다.",
+    howItWorks: "텍스트를 AI에게 제공하면, AI가 문서를 검색(RAG)하거나 맥락 안에서 참조하여 답변합니다. ⚠️ 이 방식은 모델 가중치 자체를 변경하지 않습니다 — 정확히는 '학습'이 아닌 '지식 주입(Knowledge Injection)'입니다. 프롬프트 설정 → Knowledge 업로드 → RAG 구성 순서로 정확도가 올라갑니다.",
     inputTypes: ["문서 (PDF, DOCX)", "텍스트 입력", "FAQ 목록", "대화 기록", "매뉴얼", "웹페이지 URL"],
     keyPrinciple: "Garbage In, Garbage Out — 정제된 고품질 텍스트 100건이 정제 안 된 10,000건보다 낫습니다 (Phi 논문: 2.7B = 70B급)",
     researchBasis: "Brown et al. 2020 (Few-shot), Lewis et al. 2020 (RAG), Gunasekar et al. 2023 (Data Quality)",
@@ -146,7 +146,7 @@ export const CATALOG: TopCategory[] = [
             tier: "starter",
             description: "주문, 배송, 환불, 교환 문의를 AI가 처리",
             difficulty: "intermediate",
-            estimatedTime: "30분",
+            estimatedTime: "1~2시간 (CS 기록 정리 및 에스컬레이션 설계 포함)",
             dataRequirements: [
               { item: "환불/교환/배송 정책 문서", type: "file", required: true, description: "정확한 규정 기반 답변 필수", example: "수령 7일 이내 미개봉 환불 가능, 개봉 시 교환만 가능" },
               { item: "상품 카테고리별 FAQ", type: "text", required: true, description: "상품별 자주 묻는 질문", example: "의류: 사이즈표, 세탁법 / 전자: 보증기간, AS" },
@@ -226,7 +226,7 @@ export const CATALOG: TopCategory[] = [
             difficulty: "advanced",
             estimatedTime: "60분",
             dataRequirements: [
-              { item: "법률 분야별 FAQ (100건+)", type: "text", required: true, description: "자주 묻는 법률 질문", example: "이혼 절차, 상속 순위, 임대차 보증금 반환" },
+              { item: "법률 분야별 FAQ (30건 이상, 100건+ 권장)", type: "text", required: true, description: "자주 묻는 법률 질문. 소규모 법무사·사무소는 30~50건부터 시작 가능", example: "이혼 절차, 상속 순위, 임대차 보증금 반환" },
               { item: "관련 판례/법조문 요약", type: "file", required: true, description: "법적 근거 기반 답변", example: "민법 제750조 불법행위, 주택임대차보호법 제3조" },
               { item: "법률 금지 표현/면책 조항", type: "text", required: true, description: "변호사법 준수", example: "'법률 자문' 대신 '일반적 정보 안내', 면책 문구 필수" },
             ],
@@ -445,11 +445,11 @@ export const CATALOG: TopCategory[] = [
             tier: "starter",
             description: "JD 기준으로 이력서를 자동 분석하여 적합도 점수와 추천 근거 제시",
             difficulty: "intermediate",
-            estimatedTime: "30분",
+            estimatedTime: "1~2시간 (루브릭 설계 포함)",
             dataRequirements: [
               { item: "직무기술서 JD", type: "text", required: true, description: "채용 포지션의 필수/우대 요건 정의", example: "백엔드 개발자: Java/Spring 필수, AWS 경험 우대, 3년 이상 경력" },
               { item: "평가 기준 루브릭", type: "text", required: true, description: "이력서 평가 항목과 배점 기준", example: "기술 스택 일치(40점), 경력 연차(20점), 프로젝트 경험(25점), 학력(15점)" },
-              { item: "기존 합격 이력서 패턴", type: "file", required: false, description: "실제 합격자의 이력서 패턴을 학습하여 정확도 향상", example: "최근 6개월 합격자 이력서 30건 (개인정보 마스킹)" },
+              { item: "기존 합격 이력서 패턴", type: "file", required: false, description: "실제 합격자의 이력서 패턴을 학습하여 정확도 향상. ⚠️ 연 채용 30건 미만 소기업은 데이터 부족으로 패턴 학습 효과가 낮을 수 있음", example: "최근 6개월 합격자 이력서 30건+ (개인정보 마스킹 필수)" },
               { item: "면접 질문 풀", type: "text", required: false, description: "적합 후보자에게 맞춤형 면접 질문 자동 생성", example: "기술 면접: '대규모 트래픽 처리 경험?', 컬처핏: '팀 갈등 해결 경험?'" },
             ],
             systemPromptPreview: "당신은 '{회사명}' 채용팀의 이력서 스크리닝 AI입니다. 직무기술서(JD)와 평가 루브릭을 기준으로 이력서를 분석합니다. 각 평가 항목별 점수를 산출하고, 적합/부적합 근거를 구체적으로 제시합니다. 개인의 성별, 나이, 출신 등 편향 요소는 평가에서 제외합니다...",
@@ -629,7 +629,7 @@ export const CATALOG: TopCategory[] = [
             systemPromptPreview: "당신은 농산물 품질 검사 AI입니다. 이미지를 분석하여 등급을 판정하고 근거를 제시합니다...",
             beforeAfter: {
               before: "사람이 육안 선별 → 시간당 500개, 피로 시 오분류 20%",
-              after: "AI 선별 → 시간당 5,000개, 오분류율 3%",
+              after: "AI 선별 → 시간당 3,000~5,000개, 오분류율 6~8% (조명·품종 다양성 충분 확보 시)",
             },
             guide: [
               "1단계: 등급별 이미지를 최소 200장씩 수집하세요",
@@ -828,7 +828,7 @@ export const CATALOG: TopCategory[] = [
           {
             id: "cctv-crowd-density",
             name: "군중 밀집도 실시간 분석 AI",
-            tier: "starter",
+            tier: "pro",
             description: "지하철·공연장·쇼핑몰에서 실시간 인원수 추정, 밀집 위험 구역 자동 경보",
             difficulty: "intermediate",
             estimatedTime: "4~8시간",
@@ -838,7 +838,7 @@ export const CATALOG: TopCategory[] = [
             ],
             systemPromptPreview: "CSRNet 또는 BEiT 기반 군중 밀도 추정 모델이 픽셀 단위 밀도맵을 생성하여 전체 인원을 추정합니다. 구역별 위험도를 실시간 히트맵으로 시각화합니다...",
             beforeAfter: {
-              before: "이태원 참사처럼 군중 밀집 위험을 사람이 눈으로 판단 → 늦은 대응",
+              before: "군중 밀집 위험을 사람이 눈으로 판단 → 늦은 대응, 위험 구역 파악 불가",
               after: "AI가 '출구 방향 밀도 위험 수준 도달, 현재 ㎡당 6.8명' → 즉시 안전요원 배치·방송 안내",
             },
             guide: [
@@ -855,8 +855,8 @@ export const CATALOG: TopCategory[] = [
             name: "번호판 자동 인식 AI (ANPR)",
             tier: "starter",
             description: "주차장·건물 입구에서 차량 번호판을 자동 인식, 출입 통제·주차 요금 자동화",
-            difficulty: "beginner",
-            estimatedTime: "2~3시간",
+            difficulty: "intermediate",
+            estimatedTime: "1~2일 (데이터 수집·라벨링·모델 학습 포함)",
             dataRequirements: [
               { item: "번호판 이미지 (다양한 각도·조명·거리, 500장+)", type: "image", required: true, description: "낮/밤, 정면/측면, 맑음/비, 가까이/멀리", example: "주차장 입구 카메라에서 수집한 차량 이미지" },
               { item: "번호판 텍스트 라벨", type: "data", required: true, description: "각 이미지에 해당하는 번호판 문자 정답", example: "12가 3456, 서울 99나 1234 등" },
@@ -913,7 +913,7 @@ export const CATALOG: TopCategory[] = [
             tier: "starter",
             description: "요일/날씨/시간대별 주문 패턴 분석 및 예측",
             difficulty: "intermediate",
-            estimatedTime: "30분",
+            estimatedTime: "3~4시간 (데이터 정제 포함)",
             dataRequirements: [
               { item: "POS 데이터 (3개월+)", type: "data", required: true, description: "매출 패턴 학습", example: "CSV: 날짜, 시간, 메뉴, 수량, 금액" },
               { item: "날씨 데이터", type: "data", required: false, description: "날씨 영향 분석", example: "기상청 CSV: 날짜, 기온, 강수량, 습도" },
@@ -959,7 +959,7 @@ export const CATALOG: TopCategory[] = [
             systemPromptPreview: "당신은 설비 모니터링 AI입니다. 센서 데이터를 실시간 분석하여 정상 범위를 벗어나는 패턴을 감지하고 경고합니다...",
             beforeAfter: {
               before: "고장 나야 알아차림 → 비계획 정지 연 평균 72시간",
-              after: "AI 사전 감지 → '3일 내 베어링 교체 권장' → 비계획 정지 80% 감소",
+              after: "AI 사전 감지 → '3일 내 베어링 교체 권장' → 비계획 정지 40~50% 감소 (충분한 학습 데이터·튜닝 시)",
             },
             guide: [
               "1단계: 설비 센서 데이터를 3개월 이상 수집하세요",
@@ -1032,15 +1032,15 @@ export const CATALOG: TopCategory[] = [
             difficulty: "advanced",
             estimatedTime: "3시간+",
             dataRequirements: [
-              { item: "과거 청구 데이터 1만건+", type: "data", required: true, description: "정상/비정상 청구 패턴을 AI가 학습", example: "CSV: 청구번호, 보험종류, 사고유형, 청구금액, 진단코드, 병원, 심사결과, 지급액" },
+              { item: "과거 청구 데이터 1만건+", type: "data", required: true, description: "정상/비정상 청구 패턴을 AI가 학습. ⚠️ 개인정보보호법상 비식별화 필수, 보험사·대형 GA 외에는 확보 어려움", example: "CSV: 청구번호, 보험종류, 사고유형, 청구금액, 진단코드, 병원, 심사결과, 지급액 (개인 식별정보 제거)" },
               { item: "심사 기준 매뉴얼", type: "text", required: true, description: "보험 약관별 지급 기준과 심사 규칙", example: "실손보험: 급여항목 90% 지급, 비급여 80%, 통원 1회 한도 25만원" },
               { item: "사기 의심 패턴 데이터", type: "data", required: true, description: "과거 사기 적발 사례로 이상 패턴 학습", example: "동일인 반복 청구, 사고일-진료일 불일치, 과다 청구 병원 리스트" },
               { item: "의료비 기준표", type: "data", required: false, description: "적정 의료비 범위 판단 기준", example: "건강보험심사평가원 기준: MRI 평균 30만원, CT 평균 15만원" },
             ],
             systemPromptPreview: "당신은 '{보험사명}' 보험금 심사 AI입니다. 청구 데이터를 분석하여 약관 기준에 따라 지급 적합성을 판단합니다. 단순 건은 자동 승인 추천하고, 사기 의심 패턴(반복 청구, 금액 이상치, 진단-치료 불일치)을 감지하면 상세 심사를 요청합니다. 최종 심사 결정은 반드시 심사역이 합니다...",
             beforeAfter: {
-              before: "심사역 수동 심사 → 건당 45분, 사기 탐지율 12%",
-              after: "AI 자동 심사 → 건당 3분, 사기 탐지율 68%, 단순 건 자동 승인",
+              before: "심사역 수동 심사 → 건당 45분, 사기 탐지율 12% 내외",
+              after: "AI 자동 심사 → 건당 5~10분, 사기 탐지율 30~40% 향상 (데이터 품질·사기 패턴 다양성에 따라 결과 크게 달라짐), 단순 건 자동 승인",
             },
             guide: [
               "1단계: 과거 보험금 청구 데이터를 1만건 이상 정리하세요 (심사 결과 포함)",
@@ -1376,7 +1376,7 @@ export const CATALOG: TopCategory[] = [
           {
             id: "action-home-sorting",
             name: "물건 분류·정리 AI 학습",
-            tier: "starter",
+            tier: "pro",
             description: "재활용 분류, 창고 물건 정리, 상품 피킹 등 물건을 분류하는 로봇 AI",
             difficulty: "intermediate",
             estimatedTime: "2~4주",
@@ -1388,7 +1388,7 @@ export const CATALOG: TopCategory[] = [
             systemPromptPreview: "이 모델은 컨베이어 위 물건을 실시간으로 인식하고 분류 목적지로 이동시키는 피킹 로봇 AI를 학습시킵니다...",
             beforeAfter: {
               before: "재활용 분류 = 사람이 직접 24시간 수동 선별 → 오분류율 15~20%",
-              after: "비전 AI + 로봇 팔 조합 → 오분류율 2~3%로 감소, 24시간 무인 운영",
+              after: "비전 AI + 로봇 팔 조합 → 오분류율 8~12%로 감소 (충분한 학습 데이터·환경 안정화 후), 야간 무인 운영 가능",
             },
             guide: [
               "1단계: 분류 카테고리와 기준 명확히 정의",
@@ -1517,7 +1517,7 @@ export const CATALOG: TopCategory[] = [
             tier: "starter",
             description: "내 사진 15장으로 일관된 AI 프로필/아바타 무한 생성",
             difficulty: "beginner",
-            estimatedTime: "30분",
+            estimatedTime: "1~2시간 (사진 업로드 + 학습 대기 + 생성 포함)",
             dataRequirements: [
               { item: "얼굴 사진 (다양한 각도/조명, 15장+)", type: "image", required: true, description: "정면, 좌우 45도, 다른 조명 3종 이상", example: "자연광 정면, 실내 좌측, 야외 우측 등" },
               { item: "원하는 스타일 참조", type: "text", required: true, description: "생성할 컨셉 설명", example: "사이버펑크, 르네상스 초상화, 지브리 스타일" },
