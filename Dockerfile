@@ -25,6 +25,9 @@ WORKDIR /app
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Python 3 (콘텐츠 파이프라인 v3 엔진 — 표준 라이브러리만 사용)
+RUN apk add --no-cache python3
+
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -37,6 +40,8 @@ COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+# 콘텐츠 파이프라인 Python 엔진
+COPY --from=builder /app/scripts ./scripts
 
 USER nextjs
 

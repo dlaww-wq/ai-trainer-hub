@@ -1,0 +1,1802 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YouTube 트렌드 → 콘텐츠 자동화 파이프라인</title>
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a26;--surface3:#232334;
+--border:#2a2a3e;--accent:#6c63ff;--accent2:#00d4aa;--accent3:#ff6b6b;
+--accent4:#ffd93d;--text:#e8e8f0;--muted:#666680;--glow:rgba(108,99,255,.3);}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Pretendard','Apple SD Gothic Neo',-apple-system,sans-serif;min-height:100vh;overflow-x:hidden}
+header{padding:18px 28px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;position:sticky;top:0;background:rgba(10,10,15,.92);backdrop-filter:blur(12px);z-index:100;flex-wrap:wrap}
+.logo{font-size:18px;font-weight:800;letter-spacing:-.3px}
+.logo span{color:var(--accent)}
+.badge{font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:3px 10px;border-radius:20px}
+.actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+.btn{border:1px solid var(--border);background:var(--surface);color:var(--text);padding:8px 14px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{background:#7c74ff;box-shadow:0 0 16px var(--glow)}
+.btn.running{background:var(--accent3);border-color:var(--accent3);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.7}}
+.health-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 6px transparent}
+.health-dot.ok{background:var(--accent2);box-shadow:0 0 6px var(--accent2)}
+.health-dot.err{background:var(--accent3);box-shadow:0 0 6px var(--accent3)}
+
+.pipeline-nav{display:flex;gap:0;padding:18px 28px 8px;overflow-x:auto;align-items:center;scrollbar-width:thin}
+.stage-tab{display:flex;align-items:center;gap:8px;padding:10px 18px;background:var(--surface);border:1px solid var(--border);cursor:pointer;transition:all .2s;white-space:nowrap;position:relative;font-size:13px}
+.stage-tab:first-child{border-radius:10px 0 0 10px}
+.stage-tab:last-child{border-radius:0 10px 10px 0}
+.stage-tab+.stage-tab{border-left:none}
+.stage-tab.active{background:var(--accent);border-color:var(--accent);color:#fff;z-index:1}
+.stage-tab:not(:last-child)::after{content:'→';position:absolute;right:-9px;top:50%;transform:translateY(-50%);color:var(--muted);background:var(--bg);padding:0 3px;z-index:2;font-size:11px}
+.stage-num{width:20px;height:20px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.stage-tab.done .stage-num{background:var(--accent2);color:#000}
+.progress-bar{margin:0 28px;height:3px;background:var(--surface2);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));width:0%;transition:width .4s}
+
+main{padding:24px 28px 60px;max-width:1400px;margin:0 auto}
+.section{display:none}
+.section.active{display:block;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.section-title{font-size:18px;font-weight:700;margin:22px 0 14px;display:flex;align-items:center;gap:10px}
+.section-title .dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+.section-title .count{font-size:12px;color:var(--muted);font-weight:500;margin-left:auto}
+.subtitle{font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6}
+.subtitle code{background:var(--surface2);padding:1px 6px;border-radius:4px;color:var(--accent);font-size:12px}
+hr.divider{border:none;border-top:1px solid var(--border);margin:22px 0}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;transition:all .2s}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+.card-value{font-size:24px;font-weight:800;color:var(--accent);margin-bottom:2px}
+.card-sub{font-size:12px;color:var(--muted)}
+
+/* 3가지 서칭 방식 */
+.method-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;margin-bottom:24px}
+.method-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;position:relative}
+.method-card .num{position:absolute;top:14px;right:14px;width:30px;height:30px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px}
+.method-card h4{font-size:14px;margin-bottom:8px;padding-right:36px}
+.method-card p{font-size:12px;color:var(--muted);line-height:1.6;margin-bottom:10px}
+.method-card .hits{font-size:11px;color:var(--accent2);font-weight:600}
+
+/* 안티패턴 */
+.warn-box{background:#2d1820;border:1px solid #ff6b6b44;border-left:3px solid var(--accent3);border-radius:8px;padding:14px 16px;margin-bottom:14px}
+.warn-box h5{font-size:13px;color:var(--accent3);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.warn-box p{font-size:12px;color:var(--muted);line-height:1.6}
+
+/* 시드 칩 */
+.seed-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.seed-chip{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 14px;font-size:13px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px}
+.seed-chip:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.seed-chip.warn{border-color:var(--accent3);color:var(--accent3)}
+.seed-chip.hot{border-color:var(--accent4);color:var(--accent4)}
+.seed-chip .cnt{background:rgba(255,255,255,.15);border-radius:10px;padding:1px 7px;font-size:11px}
+
+/* 자동완성 그룹 */
+.suggest-group{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px}
+.suggest-group h4{font-size:12px;color:var(--muted);margin-bottom:9px}
+.suggest-tags{display:flex;flex-wrap:wrap;gap:6px}
+.suggest-tag{background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer;transition:all .15s}
+.suggest-tag:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.suggest-tag.hot{border-color:var(--accent3);color:var(--accent3)}
+.suggest-tag.new{border-color:var(--accent2);color:var(--accent2)}
+.suggest-tag.selected{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 8px var(--glow)}
+.suggest-tag.selected::before{content:'✓ ';font-weight:700}
+.selected-bar{background:rgba(108,99,255,.08);border:1px solid var(--accent);border-radius:10px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12px}
+.selected-bar .lbl{color:var(--accent);font-weight:700}
+.selected-bar .pill{background:var(--surface3);border:1px solid var(--accent);border-radius:14px;padding:3px 10px;font-size:11px}
+.selected-bar .clear{margin-left:auto;color:var(--muted);cursor:pointer;font-size:11px;text-decoration:underline}
+
+/* 주장 액션 버튼 + 선택 상태 */
+.thesis-card.selected{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent),0 8px 24px var(--glow);transform:translateY(-2px)}
+.thesis-card.selected::before{content:'⭐ 선택됨';position:absolute;top:-10px;left:14px;background:var(--accent);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:10px;letter-spacing:.5px}
+.thesis-card{position:relative}
+.thesis-actions{display:flex;gap:6px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--border);flex-wrap:wrap}
+.thesis-actions button{font-size:11px;padding:5px 10px;border:1px solid var(--border);background:var(--surface2);color:var(--text);border-radius:6px;cursor:pointer;transition:all .15s}
+.thesis-actions button:hover{border-color:var(--accent);color:var(--accent)}
+.thesis-actions button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.thesis-toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.thesis-toolbar .info{font-size:11px;color:var(--muted);margin-left:auto}
+
+/* 카드뉴스 캔버스 미리보기 (1080×1920 → 1:1.78 축소) */
+.cn-canvas-row{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:start;margin-bottom:20px}
+.cn-canvas{width:180px;height:320px;background:linear-gradient(135deg,#1a1a26,#06060c);border:1px solid var(--border);border-radius:12px;position:relative;overflow:hidden;flex-shrink:0}
+.cn-safe{position:absolute;left:0;right:0;top:14.84%;bottom:14.84%;border:1.5px dashed var(--accent2);background:rgba(0,212,170,.04)}
+.cn-safe::before{content:'4:5 세이프존';position:absolute;top:6px;left:6px;font-size:9px;color:var(--accent2);font-weight:700}
+.cn-mark{position:absolute;left:0;right:0;height:14.84%;background:rgba(255,107,107,.08);font-size:9px;color:var(--accent3);text-align:center;line-height:1.2;padding-top:4px;font-weight:600}
+.cn-mark.top{top:0}
+.cn-mark.bot{bottom:0}
+.cn-spec{font-size:12px;line-height:1.8}
+.cn-spec table{width:100%;border-collapse:collapse;font-size:12px}
+.cn-spec td{padding:5px 8px;border-bottom:1px solid var(--border)}
+.cn-spec td:first-child{color:var(--muted);width:40%}
+.cn-spec td:last-child{color:var(--text);font-weight:600}
+
+/* 점수 테이블 */
+.score-table{width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px}
+.score-table th{text-align:left;padding:9px 13px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--border)}
+.score-table td{padding:11px 13px;border-bottom:1px solid var(--border)}
+.score-table tr:hover td{background:var(--surface2)}
+.score-bar-wrap{display:flex;align-items:center;gap:10px;min-width:180px}
+.score-bar-bg{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.score-bar-fill{height:100%;border-radius:3px;transition:width .8s}
+.score-num{font-weight:700;font-size:14px;min-width:32px;text-align:right}
+.views-badge{background:var(--surface2);padding:3px 9px;border-radius:20px;font-size:12px;white-space:nowrap}
+.rank-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;font-size:11px;font-weight:700;background:var(--surface2);border:1px solid var(--border)}
+.rank-badge.gold{background:#ffd93d22;border-color:#ffd93d;color:#ffd93d}
+.rank-badge.silver{background:#aaaaaa22;border-color:#aaaaaa;color:#aaaaaa}
+.rank-badge.bronze{background:#cd7f3222;border-color:#cd7f32;color:#cd7f32}
+
+/* 영상 카드 */
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;margin-bottom:24px}
+.video-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:all .2s;cursor:pointer}
+.video-card:hover{border-color:var(--accent);transform:translateY(-3px);box-shadow:0 8px 24px rgba(108,99,255,.2)}
+.video-thumb{width:100%;aspect-ratio:16/9;background:var(--surface2);position:relative;overflow:hidden}
+.video-thumb img{width:100%;height:100%;object-fit:cover}
+.video-thumb .rank-overlay{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.85);color:var(--accent4);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:800}
+.video-thumb .views-overlay{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.85);color:var(--accent2);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+.video-info{padding:12px 14px}
+.video-title{font-size:13px;font-weight:600;line-height:1.45;margin-bottom:6px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.video-meta{display:flex;gap:9px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.video-keyword{display:inline-block;margin-top:6px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:10px;font-size:10px}
+
+/* Phase 진행도 (인사이트 5단계) */
+.phase-track{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin:14px 0 26px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.phase-cell{padding:14px 12px;background:var(--surface);position:relative;border-right:1px solid var(--border);text-align:center;cursor:pointer;transition:all .2s}
+.phase-cell:last-child{border-right:none}
+.phase-cell:hover{background:var(--surface2)}
+.phase-cell.active{background:linear-gradient(135deg,rgba(108,99,255,.2),rgba(0,212,170,.1));border-bottom:3px solid var(--accent)}
+.phase-cell .ph-num{font-size:11px;color:var(--muted);margin-bottom:4px}
+.phase-cell .ph-name{font-size:12px;font-weight:700;margin-bottom:6px}
+.phase-cell .ph-auto{font-size:18px;font-weight:800;color:var(--accent)}
+.phase-cell .ph-sub{font-size:10px;color:var(--muted);margin-top:2px}
+.phase-detail{background:var(--surface);border:1px solid var(--accent);border-radius:12px;padding:18px;margin-bottom:24px;display:none}
+.phase-detail.active{display:block}
+.phase-detail h3{font-size:15px;margin-bottom:6px}
+.phase-detail .cond{font-size:12px;color:var(--accent4);margin-bottom:10px;padding:6px 10px;background:rgba(255,217,61,.08);border-radius:6px;border-left:3px solid var(--accent4)}
+.phase-detail ul{margin-left:18px;font-size:13px;color:var(--text);line-height:1.7}
+.phase-detail ul li{margin-bottom:3px}
+
+/* 주제/주장 분리 카드 */
+.thesis-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:16px;margin-bottom:24px}
+.thesis-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;transition:all .2s}
+.thesis-card:hover{border-color:var(--accent)}
+.thesis-card .topic{background:rgba(0,212,170,.08);border-left:3px solid var(--accent2);padding:10px 12px;border-radius:0 6px 6px 0;margin-bottom:10px}
+.thesis-card .claim{background:rgba(255,107,107,.08);border-left:3px solid var(--accent3);padding:10px 12px;border-radius:0 6px 6px 0;margin-bottom:10px}
+.thesis-card .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+.thesis-card .lbl .help{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
+.thesis-card .val{font-size:14px;font-weight:600;line-height:1.5}
+.thesis-card .check{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.thesis-card .check span{font-size:11px;background:var(--surface2);padding:3px 9px;border-radius:10px;color:var(--accent2)}
+
+/* 썸네일/제목 3×3 매트릭스 */
+.tt-matrix{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.tt-cell{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px}
+.tt-cell .pat{font-size:11px;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px}
+.tt-cell .ex{font-size:13px;line-height:1.5;font-weight:600;margin-bottom:10px}
+.tt-cell .gemini{display:inline-flex;gap:6px;align-items:center;font-size:11px;color:var(--accent4);background:rgba(255,217,61,.1);padding:4px 9px;border-radius:6px;text-decoration:none}
+
+/* 3관문 + 12시간 룰 */
+.gate-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px}
+.gate{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px}
+.gate.g1{border-top:3px solid var(--accent3)}
+.gate.g2{border-top:3px solid var(--accent4)}
+.gate.g3{border-top:3px solid var(--accent2)}
+.gate h4{font-size:14px;margin-bottom:6px}
+.gate .met{font-size:11px;color:var(--muted);margin-bottom:10px}
+.gate ul{font-size:12px;line-height:1.7;color:var(--text);margin-left:14px}
+.timeline{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:22px}
+.tick{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 8px;text-align:center;font-size:11px}
+.tick .h{font-size:14px;font-weight:800;color:var(--accent)}
+.tick .l{color:var(--muted);margin-top:3px}
+
+/* 의사결정 트리 */
+.tree{background:#06060c;border:1px solid var(--border);border-radius:10px;padding:18px 22px;font-family:'SF Mono','Fira Code',monospace;font-size:12px;line-height:1.85;white-space:pre;overflow-x:auto;margin-bottom:24px}
+.tree .root{color:var(--accent4)}
+.tree .branch{color:var(--accent2)}
+.tree .action{color:var(--accent)}
+.tree .warn{color:var(--accent3)}
+
+/* 자동화 매트릭스 */
+.auto-table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}
+.auto-table th{background:var(--surface3);padding:9px 12px;text-align:left;font-size:11px;color:var(--text);border-bottom:2px solid var(--accent)}
+.auto-table td{padding:8px 12px;border-bottom:1px solid var(--border)}
+.auto-table tr:hover td{background:var(--surface2)}
+.auto-pct{display:inline-flex;align-items:center;gap:8px}
+.auto-pct .bar{width:80px;height:5px;background:var(--surface2);border-radius:3px;overflow:hidden}
+.auto-pct .fill{height:100%}
+.auto-pct .num{min-width:40px;text-align:right;font-weight:700;font-size:12px}
+
+/* 시트 뷰 */
+.sheet-tabs{display:flex;gap:4px;margin-bottom:10px;flex-wrap:wrap}
+.sheet-tab{background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;padding:8px 16px;font-size:12px;cursor:pointer;transition:all .15s}
+.sheet-tab.active{background:var(--surface3);border-color:var(--accent);color:var(--accent)}
+.sheet-wrapper{background:var(--surface);border:1px solid var(--border);border-radius:0 12px 12px 12px;overflow:auto;max-height:580px;margin-bottom:24px}
+.sheet-table{width:100%;border-collapse:collapse;font-size:12px}
+.sheet-table thead th{position:sticky;top:0;background:var(--surface3);color:var(--text);padding:9px 13px;text-align:left;border-right:1px solid var(--border);border-bottom:2px solid var(--accent);font-weight:600;white-space:nowrap;z-index:2}
+.sheet-table tbody td{padding:8px 13px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);white-space:nowrap;max-width:320px;overflow:hidden;text-overflow:ellipsis}
+.sheet-table tbody td:first-child{background:var(--surface3);color:var(--muted);font-weight:600;text-align:center;width:38px}
+.sheet-table tbody tr:hover td{background:var(--surface2)}
+
+/* 댓글 */
+.comment-list{margin-bottom:24px}
+.comment-item{background:var(--surface);border-left:3px solid var(--accent);padding:11px 14px;margin-bottom:7px;border-radius:0 8px 8px 0}
+.comment-video{font-size:11px;color:var(--muted);margin-bottom:4px}
+.comment-text{font-size:13px;line-height:1.6}
+.comment-likes{font-size:11px;color:var(--accent4);margin-top:3px}
+
+/* 롱테일 */
+.longtail-grid{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+.longtail-item{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:6px 12px;font-size:13px;display:flex;align-items:center;gap:7px;cursor:pointer;transition:all .15s}
+.longtail-item:hover{border-color:var(--accent)}
+.longtail-item .num{color:var(--muted);font-size:11px}
+
+/* 로그 */
+.log-box{background:#06060c;border:1px solid var(--border);border-radius:10px;padding:14px 18px;font-family:'SF Mono','Fira Code',monospace;font-size:11px;line-height:1.7;max-height:240px;overflow-y:auto;margin-bottom:18px;white-space:pre-wrap}
+.log-line{color:var(--accent2)}
+.log-line.dim{color:var(--muted)}
+.log-line.warn{color:var(--accent4)}
+.log-line.err{color:var(--accent3)}
+
+::-webkit-scrollbar{width:7px;height:7px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--accent)}
+
+.flow{display:flex;align-items:center;gap:6px;padding:10px 0 16px;font-size:12px;flex-wrap:wrap}
+.flow-step{padding:5px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:20px}
+.flow-step.active{background:rgba(108,99,255,.2);border-color:var(--accent);color:var(--accent)}
+.flow-step.done{border-color:var(--accent2);color:var(--accent2)}
+.flow-arrow{color:var(--border)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">YouTube 트렌드 → 콘텐츠 <span>자동화 파이프라인</span></div>
+  <div class="badge">v3 데이터 + 5 STEP 방법론 통합</div>
+  <div class="actions">
+    <span class="health-dot" id="healthDot" title="서버 상태"></span>
+    <button class="btn" onclick="exportAll()">📥 전체 JSON</button>
+    <button class="btn primary" id="runBtn" onclick="runRealEngine()">
+      <span id="runIcon">▶</span> <span id="runText">실제 v3 엔진 실행</span>
+    </button>
+  </div>
+</header>
+
+<div class="pipeline-nav">
+  <div class="stage-tab done active" onclick="goStage(0)"><div class="stage-num">1</div>트렌드 수집</div>
+  <div class="stage-tab done" onclick="goStage(1)"><div class="stage-num">2</div>인사이트 도출</div>
+  <div class="stage-tab done" onclick="goStage(2)"><div class="stage-num">3</div>주제·주장 분리</div>
+  <div class="stage-tab done" onclick="goStage(3)"><div class="stage-num">4</div>카드뉴스 (4:5+9:16)</div>
+  <div class="stage-tab done" onclick="goStage(4)"><div class="stage-num">5</div>3관문 모니터링</div>
+  <div class="stage-tab done" onclick="goStage(5)"><div class="stage-num">⚙</div>자동화 매트릭스</div>
+  <div class="stage-tab done" onclick="goStage(6)"><div class="stage-num">📊</div>시트 뷰</div>
+</div>
+
+<div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+<main>
+
+<!-- ═══════ STEP 1 ═══════ -->
+<div class="section active" id="stage0">
+  <div class="flow">
+    <span class="flow-step done">시드 12개</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">YouTube API</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">자동완성</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">3가지 서칭 방식</span><span class="flow-arrow">→</span>
+    <span class="flow-step">인사이트 도출</span>
+  </div>
+
+  <div class="card-grid">
+    <div class="card"><div class="card-label">수집 영상</div><div class="card-value">70<span style="font-size:16px">개</span></div><div class="card-sub">90일 이내</div></div>
+    <div class="card"><div class="card-label">자동완성 키워드</div><div class="card-value">25<span style="font-size:16px">개</span></div><div class="card-sub">Google + YouTube</div></div>
+    <div class="card"><div class="card-label">최고 조회수</div><div class="card-value">27.4M</div><div class="card-sub">Dreamina Seedance</div></div>
+    <div class="card"><div class="card-label">분석 시각</div><div class="card-value" style="font-size:18px">2026-05-03</div><div class="card-sub">10:49 KST</div></div>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 3가지 트렌드 서칭 방식<span class="count">멘토 권장</span></div>
+  <div class="method-grid">
+    <div class="method-card">
+      <div class="num">1</div>
+      <h4>최신 트렌드 영상 1개 → 키워드 체크</h4>
+      <p>1주일 내 급상승 영상 1개 선정 → 영상 안 키워드(제목·자막·해시태그) + 댓글 상위 10개 추출</p>
+      <div class="hits">v3 매칭: 70개 영상 / 댓글 페인포인트 4건 확보</div>
+    </div>
+    <div class="method-card">
+      <div class="num">2</div>
+      <h4>연관영상 → 급상승 파악</h4>
+      <p>선정 영상의 우측 추천목록 확인 → 1주일 내 조회수 급상승만 필터 → 알고리즘 연결 패턴 분석</p>
+      <div class="hits">v3 매칭: 12개 시드 클러스터 → 70개 영상 그래프</div>
+    </div>
+    <div class="method-card">
+      <div class="num">3</div>
+      <h4>인기 급상승 카테고리 → 키워드 추출</h4>
+      <p>"인기 급상승" 카테고리에서 AI 관련만 필터 → 키워드 빈도 분석 → 반복 등장 단어 추출</p>
+      <div class="hits">v3 매칭: 빈도 분석 30개 (영상·제미나이·GPT·무료·클로드 상위)</div>
+    </div>
+  </div>
+
+  <div class="warn-box">
+    <h5>⚠ 안티 패턴 — 자동화 함정 회피</h5>
+    <p>① YouTube API로 "1000개 중 우선순위 3개" 자동 추출 ❌ (남들도 똑같은 결과 → 양산형) <br>
+    ② "최신성" 단독 조건값 ❌ (오늘 최신 = 내일 양산형) <br>
+    ③ 조건값 다양화 필수: 최신성 + 댓글 활성도 + 카테고리 매칭 + 본인 타깃 정합도</p>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 시드 키워드<span class="count" id="seedCount">12개</span></div>
+  <div class="seed-grid" id="seedGrid"></div>
+
+  <div class="section-title"><div class="dot"></div> 자동완성 확장 결과<span class="count">25개 · 클릭으로 선택</span></div>
+  <div id="suggestSelectedBar" class="selected-bar" style="display:none"></div>
+  <div id="suggestList"></div>
+
+  <hr class="divider">
+  <div class="section-title"><div class="dot"></div> 실행 로그<span class="count" id="logStatus">대기</span></div>
+  <div class="log-box" id="logBox"></div>
+</div>
+
+<!-- ═══════ STEP 2 ═══════ -->
+<div class="section" id="stage1">
+  <div class="flow">
+    <span class="flow-step">트렌드 수집</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">패턴 추출</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">"왜 궁금?" 분석</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">인사이트 입히기</span><span class="flow-arrow">→</span>
+    <span class="flow-step">주제·주장</span>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 인사이트 자동화 5 Phase<span class="count">현재 Phase 2</span></div>
+  <p class="subtitle">멘토 원칙: <code>"본인이 30분 안에 끝낼 수 있고, 눈 감고 설명할 수 있을 때 자동화"</code></p>
+
+  <div class="phase-track" id="phaseTrack"></div>
+  <div id="phaseDetails"></div>
+
+  <hr class="divider">
+
+  <div class="section-title"><div class="dot"></div> 키워드 기회 점수 (수요 × 최신성 × 공급갭)</div>
+  <table class="score-table">
+    <thead><tr><th>#</th><th>키워드</th><th>기회 점수</th><th>평균 조회수</th><th>최고 조회수</th><th>최근 30일</th><th>결과 수</th></tr></thead>
+    <tbody id="scoreBody"></tbody>
+  </table>
+
+  <hr class="divider">
+  <div class="section-title"><div class="dot"></div> YouTube 조회수 TOP 20<span class="count">실제 썸네일</span></div>
+  <div class="video-grid" id="videoGrid"></div>
+
+  <div class="section-title"><div class="dot"></div> 실제 댓글 페인포인트 (왜 궁금?)</div>
+  <div class="comment-list" id="commentList"></div>
+</div>
+
+<!-- ═══════ STEP 3 ═══════ -->
+<div class="section" id="stage2">
+  <div class="flow">
+    <span class="flow-step">인사이트</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">주제 정의 (알고리즘용)</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">주장 정의 (시청자용)</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">정합성 검증</span>
+  </div>
+
+  <div class="subtitle">
+    <strong>주제</strong> = 알고리즘이 분류용으로 사용 ("이 영상은 무엇에 대한 것인가") <br>
+    <strong>주장</strong> = 시청자가 공감해 클릭하는 메시지 ("내 말이 맞다")
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 인사이트 5건 → 주제·주장 분리</div>
+  <div class="thesis-toolbar">
+    <button class="btn" onclick="regenAllClaims()">🔄 전체 다시 제안</button>
+    <button class="btn" onclick="addManualClaim()">✍️ 직접 입력</button>
+    <button class="btn" onclick="addMoreClaims()">➕ 제안 추가</button>
+    <span class="info">카드 클릭 → 선택 · 선택한 항목이 맨 위로 정렬됩니다</span>
+  </div>
+  <div class="thesis-grid" id="thesisGrid"></div>
+
+  <hr class="divider">
+  <div class="section-title"><div class="dot"></div> 롱테일 기회 키워드<span class="count">15개</span></div>
+  <div class="longtail-grid" id="longtailGrid"></div>
+</div>
+
+<!-- ═══════ STEP 4 — 카드뉴스 (4:5 + 9:16 병행) ═══════ -->
+<div class="section" id="stage3">
+  <div class="flow">
+    <span class="flow-step">주제·주장</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">1페이지 커버 3패턴</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">본문 텍스트 페이지</span><span class="flow-arrow">→</span>
+    <span class="flow-step">4:5 / 9:16 동시 출력</span>
+  </div>
+
+  <div class="subtitle">
+    캔버스: <code>1080×1920 (9:16)</code> 한 번 작업 → 가운데 <code>Y 285~1635 (4:5 세이프존)</code>으로 피드용 자동 크롭 <br>
+    1페이지 = 이미지 + 어두운 필터 + 큰 텍스트 + 강렬한 색 · 2페이지~ = 깔끔한 배경 + 텍스트 중심
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 캔버스 규격<span class="count">한 번 디자인, 두 비율 출력</span></div>
+  <div class="cn-canvas-row">
+    <div class="cn-canvas">
+      <div class="cn-mark top">상단 285px<br>(스토리 전용)</div>
+      <div class="cn-safe"></div>
+      <div class="cn-mark bot">하단 285px<br>(스토리 전용)</div>
+    </div>
+    <div class="cn-spec">
+      <table>
+        <tr><td>전체 캔버스</td><td>1080 × 1920 (9:16)</td></tr>
+        <tr><td>4:5 세이프존</td><td>Y 285 ~ 1635 (1080×1350)</td></tr>
+        <tr><td>상단 여백</td><td>0~285 · 잘려도 OK 영역</td></tr>
+        <tr><td>하단 여백</td><td>1635~1920 · 스토리 CTA</td></tr>
+        <tr><td>피드 출력</td><td>가운데 1080×1350 크롭</td></tr>
+        <tr><td>스토리/릴스</td><td>1080×1920 그대로</td></tr>
+        <tr><td>핵심 텍스트</td><td>반드시 4:5 세이프존 안에</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 1페이지(커버) 임팩트 4유형<span class="count">📝 펼치면 영문 프롬프트 / 📋 복사 가능</span></div>
+  <div class="tt-matrix" id="coverPatterns"></div>
+
+  <div class="section-title"><div class="dot"></div> 🎨 1페이지 커버 카피 작업장<span class="count">패키지 선택 → 자동 프롬프트</span></div>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:20px">
+    <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+      <div style="font-size:12px;color:var(--muted)">모드:</div>
+      <label style="font-size:12px;cursor:pointer"><input type="radio" name="copyMode" value="package" checked onchange="renderCopyWorkbench()"> 📦 패키지 (3문장 한 번에)</label>
+      <label style="font-size:12px;cursor:pointer"><input type="radio" name="copyMode" value="manual" onchange="renderCopyWorkbench()"> ✍️ 직접 조합 (메인 + 후크 따로)</label>
+    </div>
+    <div id="copyWorkbench"></div>
+    <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div style="font-size:12px;color:var(--accent2);font-weight:700">🪄 생성된 Gemini 프롬프트 (복사 → 붙여넣기)</div>
+      <div>
+        <button class="btn" style="font-size:11px;padding:5px 10px" onclick="copyToClipboard('coverPromptOut','커버 프롬프트')">📋 복사</button>
+        <button class="btn" style="font-size:11px;padding:5px 10px" onclick="downloadCoverPrompt()">📥 .txt</button>
+      </div>
+    </div>
+    <textarea id="coverPromptOut" readonly style="width:100%;background:#06060c;color:var(--accent2);border:1px solid var(--border);border-radius:6px;padding:12px;font-family:'SF Mono',monospace;font-size:11px;resize:vertical;min-height:280px;line-height:1.55;white-space:pre-wrap"></textarea>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 📄 본문 P2~P8 작업장<span class="count">각 페이지 직접 수정 가능 · 본문은 Figma만으로</span></div>
+  <div id="bodyWorkbench" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:10px;margin-bottom:16px"></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;align-items:center">
+    <button class="btn" onclick="resetBodyToDefault()">↺ 본문 기본값 복원</button>
+    <button class="btn primary" onclick="copyAllPagePrompts()">📋 전체 8페이지 프롬프트 복사</button>
+    <button class="btn" onclick="downloadAllPagePrompts()">📥 전체 .txt 다운로드</button>
+    <span style="font-size:11px;color:var(--muted);margin-left:auto">각 카드의 [📋 프롬프트] → Gemini 8회 투입 → 8개 PNG 받기</span>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 📦 전체 작업 결과 (선택한 주장 기준 · P1~P8 통합)<span class="count" id="fullResultStatus">주장 카드를 먼저 선택하세요</span></div>
+  <div id="fullResultBox" style="background:#06060c;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;font-size:12px;line-height:1.7;color:var(--muted);min-height:80px">
+    💡 STEP 3 (주제·주장 분리)에서 주장 카드를 클릭해 ⭐ 선택하면, 여기에 P1 커버 4안 + 본문 P2~P8 + 모든 영문 프롬프트가 자동 통합돼서 보입니다.
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px">
+    <button class="btn" onclick="copyFullResult('all')">📋 전체 결과 복사</button>
+    <button class="btn" onclick="copyFullResult('prompts')">📋 영문 프롬프트만</button>
+    <button class="btn" onclick="copyFullResult('headlines')">📋 헤드라인만</button>
+    <button class="btn primary" onclick="downloadFullResult()">📥 .md 파일로 저장</button>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 본문 페이지(2~N) — 깔끔한 배경 + 텍스트 중심</div>
+  <div class="tt-matrix">
+    <div class="tt-cell">
+      <div class="pat">📄 P2~P3 도입</div>
+      <div class="ex">한 화면 = 한 메시지<br>큰 헤드라인 + 짧은 부연</div>
+      <div style="font-size:11px;color:var(--muted)">배경: #fafafa · 텍스트: #111 · 강조: 1색만</div>
+    </div>
+    <div class="tt-cell">
+      <div class="pat">📊 P4~P6 데이터</div>
+      <div class="ex">숫자 1개를 페이지 절반 크기로<br>+ 한 줄 해석</div>
+      <div style="font-size:11px;color:var(--muted)">차트는 단색 · 격자 최소 · 라벨 큼직</div>
+    </div>
+    <div class="tt-cell">
+      <div class="pat">🎯 P7~P8 결론·CTA</div>
+      <div class="ex">"저장 → 다음에 다시" / "팔로우"<br>핸들 + 이전 콘텐츠 미리보기</div>
+      <div style="font-size:11px;color:var(--muted)">하단 285px(스토리)에만 스와이프 유도 배치</div>
+    </div>
+  </div>
+
+  <div class="warn-box">
+    <h5>⚠ 카드뉴스 체크리스트</h5>
+    <p>① 1페이지 헤드라인이 4:5 세이프존(Y 285~1635) 안에 있는가? <br>
+    ② 핵심 텍스트가 상·하 285px 영역에 걸치지 않는가? <br>
+    ③ 본문 페이지는 한 화면당 메시지 1개로 정리됐는가? <br>
+    ④ 9:16과 4:5 두 비율 모두에서 잘림 없이 읽히는가?</p>
+  </div>
+</div>
+
+<!-- ═══════ STEP 5 ═══════ -->
+<div class="section" id="stage4">
+  <div class="flow">
+    <span class="flow-step">제작 완료</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">12시간 룰</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">3관문 진단</span><span class="flow-arrow">→</span>
+    <span class="flow-step done">의사결정 트리</span>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 12시간 모니터링 룰<span class="count">3시간 + 1×4</span></div>
+  <div class="timeline">
+    <div class="tick"><div class="h">0h</div><div class="l">업로드</div></div>
+    <div class="tick"><div class="h">+3h</div><div class="l">1차 체크</div></div>
+    <div class="tick"><div class="h">+4h</div><div class="l">2차</div></div>
+    <div class="tick"><div class="h">+5h</div><div class="l">3차</div></div>
+    <div class="tick"><div class="h">+6h~12h</div><div class="l">지속 관찰</div></div>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 3관문 + 각 관문별 대책</div>
+  <div class="gate-row">
+    <div class="gate g1">
+      <h4>🔴 1관문 — 클릭률</h4>
+      <div class="met">→ 썸네일·제목 영역</div>
+      <ul>
+        <li>클릭률 ↓ → <strong>썸네일 즉시 교체</strong> (3개 중 2번)</li>
+        <li>클릭 OK + 노출 ↓ → <strong>꽃집-스타벅스 미스매치</strong> → 제목 형태소 변경 (앞/뒤 이동, 추가/삭제)</li>
+        <li>썸네일 교체 후 3~6h 무반응 → <strong>제목 변경</strong></li>
+        <li>데이터 반영 3~4일 걸림 인지</li>
+      </ul>
+    </div>
+    <div class="gate g2">
+      <h4>🟡 2관문 — 30초 시청</h4>
+      <div class="met">→ 인트로 영역</div>
+      <ul>
+        <li>썸네일↔인트로 첫 3초 일치 점검</li>
+        <li><strong>양자택일 훅</strong>: "30%인가요 70%인가요?"</li>
+        <li>인트로 → 본문 다리 멘트: "그래서 오늘은…"</li>
+        <li>이탈 발생 시 본문이 제목과 일치하는지 재검토</li>
+      </ul>
+    </div>
+    <div class="gate g3">
+      <h4>🟢 3관문 — 평균 시청 지속</h4>
+      <div class="met">→ 본문 영역</div>
+      <ul>
+        <li>영상 4파트 분할 (인트로/본문1/본문2/엔딩)</li>
+        <li>파트 전환점 후크 삽입 ("그런데 더 중요한…")</li>
+        <li><strong>8초당 이미지 2개</strong> 기본 (B-roll 추가)</li>
+        <li>음성 분량 vs 이미지 매칭표 점검</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 종합 의사결정 트리</div>
+<div class="tree"><span class="root">업로드 후 12시간 모니터링</span>
+│
+├─ <span class="branch">1관문 클릭률 안 오름</span>
+│   └─ <span class="action">썸네일 교체 (3개 중 다음)</span>
+│       └─ 3~6h 기다림
+│           ├─ 클릭률 ↑ → <span class="action">유지</span>
+│           └─ 그래도 ↓ → <span class="action">제목 변경</span>
+│
+├─ <span class="branch">1관문 OK + 노출수 안 오름</span>
+│   └─ <span class="warn">꽃집-스타벅스 미스매치</span>
+│       └─ <span class="action">제목 형태소 변경</span> (앞/뒤·추가/삭제)
+│
+├─ <span class="branch">2관문 30초 시청률 낮음</span>
+│   ├─ <span class="action">썸네일-인트로 매칭</span> 점검
+│   ├─ <span class="action">첫 문장 양자택일 훅</span>으로 변경
+│   └─ 인트로 → 본문 다리 멘트 추가
+│
+└─ <span class="branch">3관문 평균 시청 지속 짧음</span>
+    ├─ <span class="action">영상 4파트 분할</span> 점검
+    ├─ 파트 전환 후크 삽입
+    ├─ <span class="action">B-roll 추가</span> (8초당 2개)
+    └─ 본문이 제목·주장과 일치 재검토</div>
+
+  <div class="warn-box">
+    <h5>🎯 RC카 비유 — 데이터는 3초 늦게 반응</h5>
+    <p>리모컨 신호 → RC카 반응 사이 지연. 잘못 가는 거 보고 즉시 반대 방향. <br>
+    "데이터 정리에 3~4일" + "그 사이 제목 최대한 다양하게 시도"가 정답.</p>
+  </div>
+</div>
+
+<!-- ═══════ 자동화 매트릭스 ═══════ -->
+<div class="section" id="stage5">
+  <div class="flow">
+    <span class="flow-step done">전체 단계</span><span class="flow-arrow">→</span>
+    <span class="flow-step active">Phase별 자동화 비율 매트릭스</span>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> 자동화 가능성 매트릭스<span class="count">시작 30% → 누적 80% → 플랫폼 90%</span></div>
+  <table class="auto-table" id="autoTable"></table>
+
+  <hr class="divider">
+
+  <div class="section-title"><div class="dot"></div> 추천 도구 스택</div>
+<div class="tree"><span class="branch">[수집 레이어]</span>
+  YouTube Data API · Instagram Graph API · yt-dlp (자막)
+        ↓
+<span class="branch">[저장 레이어]</span>
+  Google Sheets / Notion DB
+        ↓
+<span class="branch">[분석 레이어]</span>
+  Python + KoNLPy (형태소) · Claude API / GPT API (인사이트 후보)
+        ↓
+<span class="warn">[사람 판단 ★ 핵심]</span>
+  주장 결정 · 인사이트 입히기 · 주제·주장 분리
+        ↓
+<span class="branch">[제작 레이어]</span>
+  Claude/GPT 채팅 (제목 3개) · <span class="action">Gemini Ultra 채팅 (썸네일 직접)</span>
+        ↓
+<span class="warn">[사람 판단 ★ 핵심]</span>
+  3개 중 최종 선택
+        ↓
+<span class="branch">[운영 레이어]</span>
+  YouTube Analytics API · Google Sheets 시간별 기록
+        ↓
+<span class="warn">[사람 판단 ★ 핵심]</span>
+  1관문 — 썸네일/제목 교체 결정
+  2관문 — 인트로 재작성 결정
+  3관문 — 본문 구조/B-roll 보완 결정</div>
+</div>
+
+<!-- ═══════ 시트 뷰 ═══════ -->
+<div class="section" id="stage6">
+  <div class="flow"><span class="flow-step active">전체 데이터 스프레드시트</span></div>
+
+  <div class="sheet-tabs">
+    <div class="sheet-tab active" onclick="goSheet(this,'sheetVideos')">📺 영상 TOP 20</div>
+    <div class="sheet-tab" onclick="goSheet(this,'sheetScores')">🏆 기회 점수</div>
+    <div class="sheet-tab" onclick="goSheet(this,'sheetSuggest')">💡 자동완성</div>
+    <div class="sheet-tab" onclick="goSheet(this,'sheetThesis')">📌 주제·주장</div>
+    <div class="sheet-tab" onclick="goSheet(this,'sheetAuto')">⚙ 자동화 매트릭스</div>
+  </div>
+
+  <div class="sheet-wrapper">
+    <table class="sheet-table" id="sheetVideos"></table>
+    <table class="sheet-table" id="sheetScores" style="display:none"></table>
+    <table class="sheet-table" id="sheetSuggest" style="display:none"></table>
+    <table class="sheet-table" id="sheetThesis" style="display:none"></table>
+    <table class="sheet-table" id="sheetAuto" style="display:none"></table>
+  </div>
+
+  <div class="section-title"><div class="dot"></div> CSV / JSON 내보내기</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn" onclick="exportSheet('videos')">📥 영상 CSV</button>
+    <button class="btn" onclick="exportSheet('scores')">📥 점수 CSV</button>
+    <button class="btn" onclick="exportSheet('suggest')">📥 자동완성 CSV</button>
+    <button class="btn" onclick="exportSheet('thesis')">📥 주제·주장 CSV</button>
+    <button class="btn" onclick="exportSheet('auto')">📥 자동화 CSV</button>
+    <button class="btn primary" onclick="exportAll()">📥 전체 통합 JSON</button>
+  </div>
+</div>
+
+</main>
+
+<script>
+// ════════════ 데이터 ════════════════════════════════════════════════
+
+const SEEDS=[
+  {kw:'AI 활용법',cnt:8,level:'normal'},{kw:'챗GPT 활용',cnt:8,level:'normal'},
+  {kw:'클로드 AI',cnt:8,level:'hot'},{kw:'인공지능 업무자동화',cnt:8,level:'normal'},
+  {kw:'AI 부수익',cnt:3,level:'warn'},{kw:'AI 영상 제작',cnt:8,level:'hot'},
+  {kw:'AI 자소서',cnt:8,level:'normal'},{kw:'AI 에이전트',cnt:8,level:'normal'},
+  {kw:'인공지능 쉽게',cnt:8,level:'normal'},{kw:'AI 직장인',cnt:8,level:'normal'},
+  {kw:'챗GPT 실전',cnt:8,level:'normal'},{kw:'AI 도구 추천 2026',cnt:8,level:'normal'},
+];
+
+const SUGGEST=[
+  {seed:'AI 활용',items:[{t:'ai 활용'},{t:'ai 활용 교육',cls:'new'},{t:'ai 활용법'},{t:'ai 활용 사례'},{t:'ai 활용 자격증',cls:'new'}]},
+  {seed:'클로드',items:[{t:'클로드'},{t:'클로드 ai',cls:'hot'},{t:'클로드 코드',cls:'new'},{t:'클로드 디자인',cls:'new'},{t:'클로드 코워크',cls:'hot'}]},
+  {seed:'챗GPT',items:[{t:'챗gpt'},{t:'챗gpt 요금제'},{t:'챗gpt 유료'},{t:'챗gpt 구독 해지',cls:'hot'},{t:'챗gpt 유료 가격'}]},
+  {seed:'인공지능',items:[{t:'인공지능'},{t:'인공지능기본법'},{t:'인공지능학과'},{t:'인공지능 뜻'},{t:'인공지능 발전과 신뢰'}]},
+  {seed:'AI 에이전트',items:[{t:'ai 에이전트'},{t:'ai 에이전트란',cls:'new'},{t:'ai 에이전트 만들기',cls:'new'},{t:'ai 에이전트 종류'},{t:'ai 에이전트 추천',cls:'hot'}]},
+];
+
+const SCORES=[
+  {kw:'챗GPT 활용',score:54,avg:'500만',max:'1.3M',recent:3,cnt:8},
+  {kw:'클로드 AI',score:51,avg:'2.7M',max:'5.2M',recent:2,cnt:8},
+  {kw:'AI 영상 제작',score:51,avg:'5.4M',max:'27.4M',recent:2,cnt:8},
+  {kw:'AI 활용법',score:48,avg:'681만',max:'1.3M',recent:1,cnt:8},
+  {kw:'인공지능 업무자동화',score:48,avg:'492만',max:'1.3M',recent:1,cnt:8},
+  {kw:'AI 자소서',score:48,avg:'329만',max:'1.2M',recent:1,cnt:8},
+  {kw:'AI 직장인',score:48,avg:'546만',max:'1.7M',recent:1,cnt:8},
+  {kw:'AI 에이전트',score:45,avg:'859만',max:'1.3M',recent:0,cnt:8},
+  {kw:'인공지능 쉽게',score:45,avg:'846만',max:'5.6M',recent:0,cnt:8},
+  {kw:'챗GPT 실전',score:30,avg:'61만',max:'244만',recent:4,cnt:8},
+  {kw:'AI 도구 추천 2026',score:27,avg:'81만',max:'458만',recent:2,cnt:8},
+  {kw:'AI 부수익',score:18,avg:'1.6천',max:'2.2천',recent:0,cnt:3},
+];
+
+const VIDEOS=[
+  {vid:'512LLypVJfQ',title:'"일해서 돈버는 시대 끝났다." AI시대 몸값 폭등하는 사람의 특징',ch:'지식인사이드',date:'2026-03-07',views:5591410,likes:106854,kw:'AI 에이전트'},
+  {vid:'m2Kg5xDHTJ4',title:'Will Claude lie about setting a stopwatch?? #carterpcs',ch:'CarterPCs',date:'2026-04-13',views:5178396,likes:177373,kw:'클로드 AI'},
+  {vid:'458JV3EWlvg',title:'100% AI로 만든 역대급 추격전 🎬',ch:'[에공남] AI 공부하는 남자',date:'2026-04-21',views:4790737,likes:62398,kw:'AI 영상 제작'},
+  {vid:'PAtlYn8M4ag',title:"It's time to switch from ChatGPT #carterpcs",ch:'CarterPCs',date:'2026-03-04',views:4413276,likes:146091,kw:'클로드 AI'},
+  {vid:'h3AtWdeu_G0',title:'Bernie vs. Claude',ch:'Senator Bernie Sanders',date:'2026-03-19',views:4382302,likes:216863,kw:'클로드 AI'},
+  {vid:'a4RfzE4sw0o',title:'하늘의 별이 된 배우들을 다시만난다면? #ai영상',ch:'JAEHOBOT',date:'2026-02-03',views:3319142,likes:28305,kw:'AI 영상 제작'},
+  {vid:'GvTO6OW_2XE',title:'[300만] 하늘의 별이 된 영화배우들 Ep.01',ch:'AI 기억복원소',date:'2026-02-15',views:2943247,likes:15955,kw:'AI 영상 제작'},
+  {vid:'K4SX2dNQ7VU',title:'This AI is officially an enemy of the US government',ch:'CarterPCs',date:'2026-03-01',views:2292749,likes:87649,kw:'클로드 AI'},
+  {vid:'-IlKXQ3-rro',title:'AI로 칼퇴하는 법 3가지 / AI 활용 꿀팁 일잘러',ch:'지원쌤은 AI,영어',date:'2026-04-02',views:1688789,likes:1309,kw:'AI 직장인'},
+  {vid:'tiO2IBedn1s',title:'(🔥최신 트렌드) AI 용도별 추천!',ch:'테크잡화점',date:'2026-04-18',views:1663520,likes:31827,kw:'AI 영상 제작'},
+  {vid:'sK5WVys3n7k',title:"'알파고 대국 10년'…다시 AI 마주 선 이세돌",ch:'KBS News',date:'2026-03-09',views:1272437,likes:6310,kw:'AI 에이전트'},
+  {vid:'ch4EsgfHOJc',title:'24시간 무급으로 대신 일해주는 AI 비서 등장 오픈클로',ch:'ITSub잇섭',date:'2026-02-16',views:1254036,likes:12539,kw:'AI 활용법'},
+  {vid:'rt3403i4pOU',title:'AI로 켄드릭라마 뮤비 카메라무빙 하는 방법',ch:'영필름스튜디오',date:'2026-03-02',views:1181937,likes:8975,kw:'AI 영상 제작'},
+  {vid:'pt7kiKydZBQ',title:'임현서가 현시점 가장 추천하는 AI(광고아님)',ch:'이면서다',date:'2026-03-25',views:1172813,likes:8277,kw:'AI 자소서'},
+  {vid:'brtbMmCkghM',title:"AI '클로드 코워크'에 시장 '출렁' (MBC뉴스)",ch:'MBCNEWS',date:'2026-02-06',views:1165392,likes:10143,kw:'AI 활용법'},
+  {vid:'O24sXs7pUko',title:'[1화]천군 : 타임슬립 1636 [AI 단편 영화]',ch:'AI박스',date:'2026-02-12',views:950030,likes:6691,kw:'AI 영상 제작'},
+  {vid:'CsHMm6t1QXI',title:"'오픈클로' 진짜 어디까지 할 수 있는 걸까?｜크랩",ch:'크랩 KLAB',date:'2026-02-10',views:865848,likes:8636,kw:'AI 에이전트'},
+  {vid:'pfU0hA9kdYA',title:'[자막뉴스] AI를 적극 활용한 그룹과 두뇌만 쓴 그룹',ch:'KBS News',date:'2026-03-03',views:767622,likes:6185,kw:'챗GPT 활용'},
+  {vid:'C0p54Kpqzb0',title:"[이슈] '오픈클로' 등장에 네이버·카카오 '발칵'",ch:'KBS News',date:'2026-02-19',views:740334,likes:4169,kw:'AI 에이전트'},
+  {vid:'3y4seRpG6nk',title:'퇴근하고 하루 10분! 2026년 돈 되는 최신 부업 TOP5',ch:'옌마드Yenmad',date:'2026-02-23',views:694354,likes:37534,kw:'AI 직장인'},
+];
+
+// 인사이트 5 Phase
+const PHASES=[
+  {ph:1,name:'수동 도출',auto:'0%',sub:'시작 단계',cond:'사례 0건 — 진입 즉시',
+   tasks:['트렌드 영상 1개 선택','댓글 상위 50개 직접 읽기','"왜 클릭" 아닌 "왜 궁금" 직접 적기','본인 인사이트 1줄 + 근거 적기','구글 시트 양식으로 기록']},
+  {ph:2,name:'패턴 추출',auto:'20%',sub:'사례 3~5건',cond:'본인 사례 3~5건 누적 후 → LLM 프롬프트 변환',
+   tasks:['반복 구조 파악 (막힘 패턴 → 가정 역추적 → 대안 → 검증)','LLM 프롬프트 템플릿화','학습 사례 3건 입력','첫 프롬프트 검증']},
+  {ph:3,name:'LLM 보조',auto:'70%',sub:'프롬프트 완성',cond:'본인 프롬프트 안정화 후',
+   tasks:['Claude/GPT API에 본인 프롬프트 적용','인사이트 후보 3개 자동 생성','사람이 근거·톤·양산형 검증','채택/수정/폐기 결정']},
+  {ph:4,name:'풀 자동화',auto:'90%',sub:'사례 30~50건',cond:'채택 사례 30~50건 누적',
+   tasks:['Few-shot 또는 Fine-tuning','자동 생성 + 주간 검토 모드','검토 시간 인사이트당 30초','데이터셋 지속 추가']},
+  {ph:5,name:'플랫폼화',auto:'95%',sub:'SaaS 인프라',cond:'사례 100+ + SaaS 인프라 구축',
+   tasks:['패턴 SaaS화 (자영업·기업 결제)','패턴 업데이트만으로 매출 자동화','마머스 비전 (모든 분야 동일 적용)']},
+];
+
+// 주제·주장 5건
+const THESIS=[
+  {rank:1,
+   topic:'클로드 AI vs ChatGPT 비교 가이드',
+   topicWhy:'알고리즘이 "AI 도구 비교" 카테고리로 분류',
+   claim:'2026년 직장인은 ChatGPT보다 클로드가 더 적합하다',
+   claimWhy:'시청자 공감 메시지 (구독 해지 자동완성 급등 검증)',
+   evidence:'클로드 5.2M 조회 + 챗GPT 구독 해지 자동완성',
+   target:'30~50대 직장인',
+   pain:'어떤 AI 써야 할지 모름',
+   views:'5만~25만',
+   check:['주제 명확','주장 명확','정합성 OK','속았네 ❌']},
+  {rank:2,
+   topic:'오픈클로 AI 비서 24시간 실사용기',
+   topicWhy:'"AI 에이전트 실전 사용" 카테고리',
+   claim:'오픈클로는 일반 사무직도 즉시 쓸 수 있다',
+   claimWhy:'어렵다 선입견 → 실사용 검증으로 반박',
+   evidence:'ITSub 1.3M + 크랩 865만',
+   target:'20~40대 얼리어답터',
+   pain:'AI 에이전트 사용법 모름',
+   views:'3만~20만',
+   check:['주제 명확','주장 명확','정합성 OK']},
+  {rank:3,
+   topic:'AI 자동화 부수익 워크플로우',
+   topicWhy:'"AI 부업/사이드프로젝트" 카테고리',
+   claim:'퇴근 후 1시간이면 AI 자동화 부수익 가능',
+   claimWhy:'시간 부족 페인 직접 반박',
+   evidence:'YouTube 공급 3개뿐 (블루오션)',
+   target:'30~40대 부업러',
+   pain:'시간 없어 부업 못함',
+   views:'5만~30만',
+   check:['주제 명확','주장 명확','블루오션']},
+  {rank:4,
+   topic:'AI 자소서 자연스럽게 만드는 패턴',
+   topicWhy:'"취업/자소서" 카테고리',
+   claim:'AI 자소서 7가지 패턴이면 면접관도 못 잡는다',
+   claimWhy:'AI 티 날까 불안 페인 반박',
+   evidence:'AI 자소서 평균 329만 조회',
+   target:'20~30대 취준생',
+   pain:'AI 쓰면 티 날까 불안',
+   views:'3만~12만',
+   check:['주제 명확','주장 명확']},
+  {rank:5,
+   topic:'AI 에이전트 실전 5가지 활용법',
+   topicWhy:'"AI 업무자동화" 카테고리',
+   claim:'코딩 없이 AI 에이전트로 업무 반 줄일 수 있다',
+   claimWhy:'개념만 알고 실전 못함 페인 반박',
+   evidence:'평균 859만 조회 + 자동완성 5종',
+   target:'직장인 전 연령',
+   pain:'개념만 알고 실전 못함',
+   views:'2만~10만',
+   check:['주제 명확','주장 명확','자동완성 일치']},
+];
+
+const LONGTAIL=['ai 활용 교육','ai 활용 자격증','클로드 코드','클로드 디자인','클로드 코워크','챗gpt 구독 해지','챗gpt 유료 가격','ai 에이전트 만들기','ai 에이전트 추천','ai 에이전트란','인공지능기본법','클로드 ai 사용법','ai 활용 사례','ai 에이전트 종류','ai 활용법 2026'];
+
+const COMMENTS=[
+  {video:'"일해서 돈버는 시대 끝났다." 5.6M',text:'진짜 이런 정보를 방구석에서 딸깍하고 볼 수 있다는 사실이 너무 감사하네요',likes:'4,496'},
+  {video:'"일해서 돈버는 시대 끝났다." 5.6M',text:'이런 강의가 있나요 돈을 몇십만원 주고 들어야 하는 강의를 공개해주셔서 감사합니다',likes:'2,694'},
+  {video:'Will Claude lie? — CarterPCs 5.2M',text:'"I\'ll be here when you finish" 😭✌️',likes:'24,364'},
+  {video:'Will Claude lie? — CarterPCs 5.2M',text:'People seem to forget these AIs are just text guessing machines and not personal assistants',likes:'7,179'},
+];
+
+// 자동화 매트릭스
+const AUTO_MATRIX=[
+  {step:'STEP 1',task:'트렌드 영상 메타데이터 수집',pct:100,when:'즉시',note:'YouTube Data API'},
+  {step:'STEP 1',task:'자막·댓글 자동 추출',pct:100,when:'즉시',note:'yt-dlp + API'},
+  {step:'STEP 1',task:'키워드 빈도 분석',pct:100,when:'즉시',note:'Python KoNLPy'},
+  {step:'STEP 1',task:'우선순위 결정',pct:0,when:'❌',note:'양산형 함정'},
+  {step:'STEP 2',task:'페인포인트 추출',pct:50,when:'Phase 2~',note:'LLM 보조'},
+  {step:'STEP 2',task:'인사이트 도출',pct:90,when:'Phase 4~',note:'본인 패턴 학습 후'},
+  {step:'STEP 3',task:'주제·주장 후보 생성',pct:70,when:'Phase 2~',note:'LLM 후보, 선택은 사람'},
+  {step:'STEP 3',task:'정합성 최종 결정',pct:0,when:'❌',note:'사람 직관'},
+  {step:'STEP 4',task:'제목 3개 생성',pct:100,when:'즉시',note:'Claude/GPT 채팅'},
+  {step:'STEP 4',task:'썸네일 이미지 생성',pct:95,when:'즉시',note:'Gemini Ultra 채팅 직접'},
+  {step:'STEP 4',task:'최종 3개 중 선택',pct:0,when:'❌',note:'사람 감각'},
+  {step:'STEP 5',task:'1관문 클릭률 데이터',pct:100,when:'즉시',note:'Analytics API'},
+  {step:'STEP 5',task:'2관문 30초 시청률',pct:100,when:'즉시',note:'Analytics API'},
+  {step:'STEP 5',task:'3관문 시청 지속 그래프',pct:100,when:'즉시',note:'Analytics API'},
+  {step:'STEP 5',task:'1관문 대책 (썸네일/제목 교체)',pct:80,when:'Phase 3~',note:'룰 기반'},
+  {step:'STEP 5',task:'2관문 대책 (인트로 재작성)',pct:70,when:'Phase 3~',note:'LLM 후보'},
+  {step:'STEP 5',task:'3관문 대책 (본문/B-roll)',pct:60,when:'Phase 4~',note:'사람 판단 우세'},
+  {step:'STEP 5',task:'형태소 판단',pct:0,when:'❌',note:'사람만 (아 다르고 어 다른)'},
+];
+
+// ════════════ 헬퍼 ════════════════════════════════════════════════
+function fmtNum(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e4)return Math.floor(n/1000)+'천';if(n>=1e3)return(n/1e3).toFixed(1)+'천';return String(n)}
+function unesc(s){return(s||'').replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')}
+function csvEsc(s){return'"'+String(s).replace(/"/g,'""')+'"'}
+
+// ════════════ 렌더 ════════════════════════════════════════════════
+function renderSeeds(){
+  document.getElementById('seedGrid').innerHTML=SEEDS.map(s=>`
+    <div class="seed-chip ${s.level==='hot'?'hot':s.level==='warn'?'warn':''}" onclick="appendLog('🔍 '+'${s.kw}'+' 클릭')">
+      ${s.kw} <span class="cnt">${s.cnt}</span>
+    </div>`).join('');
+}
+const selectedSuggests=new Set();
+function renderSuggest(){
+  document.getElementById('suggestList').innerHTML=SUGGEST.map(g=>`
+    <div class="suggest-group">
+      <h4>🔍 '${g.seed}' 자동완성</h4>
+      <div class="suggest-tags">${g.items.map(i=>`<span class="suggest-tag ${i.cls||''} ${selectedSuggests.has(i.t)?'selected':''}" onclick="toggleSuggest('${i.t.replace(/'/g,"\\'")}')">${i.t}</span>`).join('')}</div>
+    </div>`).join('');
+  renderSelectedBar();
+}
+function toggleSuggest(t){
+  if(selectedSuggests.has(t))selectedSuggests.delete(t);else selectedSuggests.add(t);
+  renderSuggest();
+  appendLog((selectedSuggests.has(t)?'✅ 선택: ':'⬜ 해제: ')+t,'');
+}
+function renderSelectedBar(){
+  const bar=document.getElementById('suggestSelectedBar');if(!bar)return;
+  if(selectedSuggests.size===0){bar.style.display='none';return}
+  bar.style.display='flex';
+  bar.innerHTML=`<span class="lbl">선택 ${selectedSuggests.size}개 →</span>`+
+    [...selectedSuggests].map(t=>`<span class="pill">${t}</span>`).join('')+
+    `<span class="clear" onclick="selectedSuggests.clear();renderSuggest()">전체 해제</span>`;
+}
+function renderScores(){
+  const cls=['gold','silver','bronze'];
+  document.getElementById('scoreBody').innerHTML=SCORES.map((s,i)=>{
+    const pct=Math.round(s.score/60*100);
+    const color=s.score>=50?'#6c63ff':s.score>=40?'#00d4aa':'#666680';
+    const rb=i<3?`<span class="rank-badge ${cls[i]}">${i+1}</span>`:`<span class="rank-badge">${i+1}</span>`;
+    return`<tr>
+      <td>${rb}</td><td style="font-weight:600">${s.kw}</td>
+      <td><div class="score-bar-wrap"><div class="score-bar-bg"><div class="score-bar-fill" style="width:${pct}%;background:${color}"></div></div><div class="score-num" style="color:${color}">${s.score}</div></div></td>
+      <td><span class="views-badge">${s.avg}</span></td>
+      <td><span class="views-badge" style="color:#00d4aa">${s.max}</span></td>
+      <td>${s.recent}개</td><td style="color:var(--muted)">${s.cnt}개</td>
+    </tr>`;
+  }).join('');
+}
+function renderVideos(){
+  document.getElementById('videoGrid').innerHTML=VIDEOS.map((v,i)=>`
+    <div class="video-card" onclick="window.open('https://youtube.com/watch?v=${v.vid}','_blank')">
+      <div class="video-thumb">
+        <img src="https://i.ytimg.com/vi/${v.vid}/mqdefault.jpg" loading="lazy" onerror="this.style.display='none'">
+        <div class="rank-overlay">#${i+1}</div>
+        <div class="views-overlay">${fmtNum(v.views)}</div>
+      </div>
+      <div class="video-info">
+        <div class="video-title">${unesc(v.title)}</div>
+        <div class="video-meta"><span>📺 ${v.ch}</span><span>📅 ${v.date}</span><span>❤️ ${fmtNum(v.likes)}</span></div>
+        <span class="video-keyword">#${v.kw}</span>
+      </div>
+    </div>`).join('');
+}
+function renderComments(){
+  document.getElementById('commentList').innerHTML=COMMENTS.map(c=>`
+    <div class="comment-item">
+      <div class="comment-video">📺 ${c.video}</div>
+      <div class="comment-text">"${c.text}"</div>
+      <div class="comment-likes">❤️ ${c.likes}</div>
+    </div>`).join('');
+}
+function renderLongtail(){
+  document.getElementById('longtailGrid').innerHTML=LONGTAIL.map((kw,i)=>`
+    <div class="longtail-item"><span class="num">${String(i+1).padStart(2,'0')}</span>${kw}</div>`).join('');
+}
+function renderPhases(){
+  let activeIdx=1; // Phase 2 default
+  document.getElementById('phaseTrack').innerHTML=PHASES.map((p,i)=>`
+    <div class="phase-cell ${i===activeIdx?'active':''}" onclick="selectPhase(${i})" id="phaseCell${i}">
+      <div class="ph-num">Phase ${p.ph}</div>
+      <div class="ph-name">${p.name}</div>
+      <div class="ph-auto">${p.auto}</div>
+      <div class="ph-sub">${p.sub}</div>
+    </div>`).join('');
+  document.getElementById('phaseDetails').innerHTML=PHASES.map((p,i)=>`
+    <div class="phase-detail ${i===activeIdx?'active':''}" id="phaseDetail${i}">
+      <h3>Phase ${p.ph} — ${p.name} <span style="color:var(--accent)">(자동화 ${p.auto})</span></h3>
+      <div class="cond">📌 진입 조건: ${p.cond}</div>
+      <ul>${p.tasks.map(t=>`<li>${t}</li>`).join('')}</ul>
+    </div>`).join('');
+}
+function selectPhase(i){
+  PHASES.forEach((_,j)=>{
+    document.getElementById('phaseCell'+j).classList.toggle('active',j===i);
+    document.getElementById('phaseDetail'+j).classList.toggle('active',j===i);
+  });
+}
+let selectedThesisId=null;
+function renderThesis(){
+  // 선택한 항목 맨 위로
+  const sorted=[...THESIS].sort((a,b)=>{
+    if(a.rank===selectedThesisId)return -1;
+    if(b.rank===selectedThesisId)return 1;
+    return a.rank-b.rank;
+  });
+  document.getElementById('thesisGrid').innerHTML=sorted.map(t=>`
+    <div class="thesis-card ${t.rank===selectedThesisId?'selected':''}" onclick="selectThesis(${t.rank})">
+      <div style="font-size:11px;color:var(--accent4);margin-bottom:8px">${'★'.repeat(t.rank)} #${t.rank}</div>
+      <div class="topic">
+        <div class="lbl">📌 주제 <span class="help">(알고리즘 분류용)</span></div>
+        <div class="val">${t.topic}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${t.topicWhy}</div>
+      </div>
+      <div class="claim">
+        <div class="lbl">🎯 주장 <span class="help">(시청자 공감용)</span></div>
+        <div class="val">${t.claim}</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px">${t.claimWhy}</div>
+      </div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">
+        🔬 근거: ${t.evidence}<br>
+        🎯 타깃: ${t.target} · 😤 페인: ${t.pain}<br>
+        👁 예상: <span style="color:var(--accent2);font-weight:700">${t.views}</span>
+      </div>
+      <div class="check">${t.check.map(c=>`<span>✓ ${c}</span>`).join('')}</div>
+      <div class="thesis-actions" onclick="event.stopPropagation()">
+        <button onclick="regenClaim(${t.rank})">🔄 이 주장 다시 제안</button>
+        <button onclick="editClaim(${t.rank})">✍️ 직접 수정</button>
+        <button class="primary" onclick="selectThesis(${t.rank})">⭐ 이걸로 선택</button>
+      </div>
+    </div>`).join('');
+}
+function selectThesis(rank){
+  selectedThesisId=(selectedThesisId===rank)?null:rank;
+  renderThesis();
+  if(typeof renderFullResult==='function')renderFullResult();
+  appendLog(selectedThesisId?'⭐ 주장 선택: #'+rank+' → STEP 4 카드뉴스 전체 결과 갱신':'⬜ 선택 해제','');
+}
+function regenClaim(rank){
+  const t=THESIS.find(x=>x.rank===rank);if(!t)return;
+  const variants=[
+    '진짜 이유는 따로 있다 — '+t.topic.split(' ')[0],
+    t.target+'이라면 반드시 알아야 할 한 가지',
+    '"'+t.claim.split(' ').slice(0,3).join(' ')+'"는 절반만 맞다',
+  ];
+  t.claim=variants[Math.floor(Math.random()*variants.length)];
+  t.claimWhy='재제안 (temperature↑)';
+  renderThesis();renderSheets();
+  appendLog('🔄 #'+rank+' 주장 재제안','');
+}
+function editClaim(rank){
+  const t=THESIS.find(x=>x.rank===rank);if(!t)return;
+  const v=prompt('새 주장 입력:',t.claim);
+  if(v&&v.trim()){t.claim=v.trim();t.claimWhy='직접 입력';renderThesis();renderSheets();appendLog('✍️ #'+rank+' 직접 수정','');}
+}
+function regenAllClaims(){THESIS.forEach(t=>regenClaim(t.rank));appendLog('🔄 전체 주장 재제안','warn');}
+function addManualClaim(){
+  const topic=prompt('새 주제(알고리즘 분류용):');if(!topic)return;
+  const claim=prompt('새 주장(시청자 공감용):');if(!claim)return;
+  const newRank=THESIS.length+1;
+  THESIS.push({rank:newRank,topic,topicWhy:'직접 입력',claim,claimWhy:'직접 입력',evidence:'-',target:'-',pain:'-',views:'-',check:['직접 입력']});
+  renderThesis();renderSheets();
+  appendLog('✍️ 직접 입력 추가 #'+newRank,'');
+}
+// ═══ 1페이지 커버 카피 — 10 메인 / 10 후크 / 10 통합 패키지 ═══
+const MAIN_OPTIONS=[
+  {l1:'GPT 끊고',                  l2:'Claude 써본 일주일',   accent:'Claude',     accentColor:'#FF8A3D'},
+  {l1:'ChatGPT 결제',              l2:'끊은 결정적 이유',     accent:'끊은',       accentColor:'#FF3B3B'},
+  {l1:'ChatGPT 6개월 vs',          l2:'Claude 일주일',        accent:'일주일',     accentColor:'#FF8A3D'},
+  {l1:'회사에서 몰래',             l2:'이거 쓰고 있어요',     accent:'몰래',       accentColor:'#FF3B3B'},
+  {l1:'GPT 안 쓴 지',              l2:'7일째입니다',          accent:'7일째',      accentColor:'#FFD93D'},
+  {l1:'Claude 한 번 써봤다가',     l2:'못 끊었어요',          accent:'못 끊었어요',accentColor:'#FF8A3D'},
+  {l1:'솔직히 GPT보다',            l2:'낫더라고요',           accent:'낫더라고요', accentColor:'#FF8A3D'},
+  {l1:'30대 직장인이',             l2:'GPT를 버린 이유',      accent:'버린',       accentColor:'#FF3B3B'},
+  {l1:'일주일 동안 시켜본',        l2:'Claude 솔직 후기',     accent:'솔직',       accentColor:'#FF8A3D'},
+  {l1:'직장인 7명 중 6명이',       l2:'바꾼 그 AI',           accent:'6명',        accentColor:'#FFD93D'},
+];
+const HOOK_OPTIONS=[
+  '근데 진짜는 5일째였어요',
+  '결과는... 좀 충격적',
+  'Day 7에 결국 결제 끊음',
+  '솔직 후기 7일치 풀어요',
+  '이거 본 동료들도 다 갈아탐',
+  '마지막 날 결정한 한 가지',
+  '근데 단점도 있어요 (있음)',
+  '한 달 $20이 사라졌어요',
+  '잘못 알면 못 돌아옴',
+  '결제 끊은 그날의 화면',
+];
+const PACKAGES=[
+  {name:'01 자백·일기 ⭐ 추천', mainIdx:0, hookIdx:0, tone:'친구의 후일담'},
+  {name:'02 비교·수치',         mainIdx:2, hookIdx:1, tone:'데이터 직장인'},
+  {name:'03 결정·확신',         mainIdx:1, hookIdx:7, tone:'단호'},
+  {name:'04 비밀·내부정보',     mainIdx:3, hookIdx:4, tone:'내부고발'},
+  {name:'05 카운트·진행형',     mainIdx:4, hookIdx:5, tone:'신선함'},
+  {name:'06 솔직·후일담',       mainIdx:8, hookIdx:6, tone:'솔직 균형'},
+  {name:'07 정체성·세대',       mainIdx:7, hookIdx:2, tone:'30대 타깃팅'},
+  {name:'08 발견·놀람',         mainIdx:5, hookIdx:3, tone:'경험담'},
+  {name:'09 사회적 증명',       mainIdx:9, hookIdx:4, tone:'동료 압력'},
+  {name:'10 단호·짧음 ⭐ 추천', mainIdx:1, hookIdx:2, tone:'결말 강조'},
+];
+let copyState={
+  mode:'package',pkg:0,mainIdx:0,hookIdx:0,handle:'@mamurs.ai.lab',
+  // 직접 수정값 (사용자가 텍스트박스에서 바꾼 내용)
+  customL1:'',customL2:'',customAccent:'',customAccentColor:'',customHook:'',
+  edited:false,
+};
+function effMain(){
+  if(copyState.edited&&copyState.customL1){
+    return {l1:copyState.customL1,l2:copyState.customL2,accent:copyState.customAccent,accentColor:copyState.customAccentColor||'#FF8A3D'};
+  }
+  return MAIN_OPTIONS[copyState.mainIdx];
+}
+function effHook(){
+  if(copyState.edited&&copyState.customHook!=='')return copyState.customHook;
+  return HOOK_OPTIONS[copyState.hookIdx];
+}
+function syncCustomFromSelection(){
+  const M=MAIN_OPTIONS[copyState.mainIdx];
+  copyState.customL1=M.l1;copyState.customL2=M.l2;
+  copyState.customAccent=M.accent;copyState.customAccentColor=M.accentColor;
+  copyState.customHook=HOOK_OPTIONS[copyState.hookIdx];
+}
+
+function renderCopyWorkbench(){
+  const m=document.querySelector('input[name="copyMode"]:checked')?.value||'package';
+  copyState.mode=m;
+  const wb=document.getElementById('copyWorkbench');
+  if(!wb)return;
+  if(m==='package'){
+    wb.innerHTML=`
+      <div style="margin-bottom:10px;font-size:12px;color:var(--muted)">3문장 통합 패키지 — 톤 일관성 보장</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:8px">
+        ${PACKAGES.map((p,i)=>{
+          const M=MAIN_OPTIONS[p.mainIdx],H=HOOK_OPTIONS[p.hookIdx];
+          const sel=i===copyState.pkg;
+          return `<div onclick="selectPackage(${i})" style="background:${sel?'rgba(108,99,255,.15)':'var(--surface2)'};border:1px solid ${sel?'var(--accent)':'var(--border)'};border-radius:8px;padding:11px 12px;cursor:pointer;transition:all .15s">
+            <div style="font-size:11px;color:${sel?'var(--accent)':'var(--accent4)'};font-weight:700;margin-bottom:6px">${sel?'⭐ ':''}${p.name}</div>
+            <div style="font-size:13px;font-weight:700;line-height:1.4;color:var(--text)">${M.l1}<br>${M.l2.replace(M.accent,`<span style="background:${M.accentColor};color:#fff;padding:1px 5px;border-radius:3px">${M.accent}</span>`)}</div>
+            <div style="font-size:11px;color:var(--accent4);margin-top:6px;font-style:italic">↳ ${H}</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px">${p.tone}</div>
+          </div>`;
+        }).join('')}
+      </div>
+      <div style="margin-top:14px;padding:12px;background:#06060c;border:1px solid var(--accent);border-radius:8px">
+        <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:8px">✏️ 선택한 카피 — 직접 수정 가능 (수정하면 즉시 프롬프트 반영)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+          <input type="text" value="${(effMain().l1||'').replace(/"/g,'&quot;')}" placeholder="메인 1줄" oninput="applyCustomEdit('customL1',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:13px;font-weight:700">
+          <input type="text" value="${(effMain().l2||'').replace(/"/g,'&quot;')}" placeholder="메인 2줄" oninput="applyCustomEdit('customL2',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:13px;font-weight:700">
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;margin-bottom:8px">
+          <input type="text" value="${(effHook()||'').replace(/"/g,'&quot;')}" placeholder="후크 한 줄" oninput="applyCustomEdit('customHook',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--accent4);padding:7px 10px;border-radius:5px;font-size:12px;font-style:italic">
+          <input type="text" value="${(effMain().accent||'').replace(/"/g,'&quot;')}" placeholder="강조 단어" oninput="applyCustomEdit('customAccent',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:12px">
+          <select onchange="applyCustomEdit('customAccentColor',this.value)" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:5px;font-size:11px">
+            <option value="#FF8A3D" ${effMain().accentColor==='#FF8A3D'?'selected':''}>🟧 앰버</option>
+            <option value="#FF3B3B" ${effMain().accentColor==='#FF3B3B'?'selected':''}>🟥 빨강</option>
+            <option value="#FFD93D" ${effMain().accentColor==='#FFD93D'?'selected':''}>🟨 골드</option>
+            <option value="#00D4AA" ${effMain().accentColor==='#00D4AA'?'selected':''}>🟩 민트</option>
+          </select>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:11px;color:var(--muted)">
+          🏷 핸들: <input type="text" value="${copyState.handle}" oninput="copyState.handle=this.value;updateCoverPrompt()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px;width:160px">
+          ${copyState.edited?'<span style="color:var(--accent3);font-weight:600">● 수정됨</span>':''}
+          <button class="btn" style="font-size:10px;padding:4px 9px;margin-left:auto" onclick="copyState.edited=false;syncCustomFromSelection();renderCopyWorkbench()">↺ 패키지 원본으로 되돌리기</button>
+          <button class="btn primary" style="font-size:10px;padding:4px 9px" onclick="applyHookToBody()">🔗 이 후크에 맞춰 본문 재정렬</button>
+        </div>
+      </div>`;
+  }else{
+    const M=MAIN_OPTIONS[copyState.mainIdx],H=HOOK_OPTIONS[copyState.hookIdx];
+    wb.innerHTML=`
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:8px">메인 헤드라인 (10안)</div>
+          <select onchange="copyState.mainIdx=+this.value;renderCopyWorkbench();updateCoverPrompt()" style="width:100%;background:#06060c;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:12px">
+            ${MAIN_OPTIONS.map((o,i)=>`<option value="${i}" ${i===copyState.mainIdx?'selected':''}>#${i+1}  ${o.l1} / ${o.l2}</option>`).join('')}
+          </select>
+          <div style="margin-top:10px;padding:10px;background:#06060c;border-radius:6px;font-size:14px;font-weight:700;line-height:1.5">
+            ${M.l1}<br>${M.l2.replace(M.accent,`<span style="background:${M.accentColor};color:#fff;padding:2px 7px;border-radius:3px">${M.accent}</span>`)}
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;color:var(--accent2);font-weight:700;margin-bottom:8px">후크 한 줄 (10안)</div>
+          <select onchange="copyState.hookIdx=+this.value;renderCopyWorkbench();updateCoverPrompt()" style="width:100%;background:#06060c;border:1px solid var(--border);color:var(--text);padding:8px;border-radius:6px;font-size:12px">
+            ${HOOK_OPTIONS.map((h,i)=>`<option value="${i}" ${i===copyState.hookIdx?'selected':''}>#${i+1}  ${h}</option>`).join('')}
+          </select>
+          <div style="margin-top:10px;padding:10px;background:#06060c;border-radius:6px;font-size:13px;font-style:italic;color:#FFD93D;line-height:1.5">
+            ↳ ${H}
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:14px;padding:10px 12px;background:var(--surface2);border-radius:8px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        🏷  핸들: <input type="text" value="${copyState.handle}" oninput="copyState.handle=this.value;updateCoverPrompt()" style="background:#06060c;border:1px solid var(--border);color:var(--text);padding:4px 8px;border-radius:4px;font-size:12px;width:160px">
+        <button class="btn primary" style="font-size:10px;padding:4px 9px;margin-left:auto" onclick="applyHookToBody()">🔗 이 후크에 맞춰 본문 재정렬</button>
+      </div>`;
+  }
+  updateCoverPrompt();
+}
+function selectPackage(i){
+  copyState.pkg=i;
+  copyState.mainIdx=PACKAGES[i].mainIdx;
+  copyState.hookIdx=PACKAGES[i].hookIdx;
+  copyState.edited=false;
+  syncCustomFromSelection();
+  renderCopyWorkbench();
+  if(typeof renderBodyWorkbench==='function')renderBodyWorkbench();
+  appendLog('📦 패키지 선택: '+PACKAGES[i].name,'');
+}
+function applyCustomEdit(field,val){
+  copyState.edited=true;
+  copyState[field]=val;
+  updateCoverPrompt();
+}
+function buildCoverPrompt(){
+  const M=effMain();
+  const H=effHook();
+  return `A vertical 9:16 Instagram cover image.
+
+[PHOTO]
+Candid documentary photo of an ordinary Korean man in his early 30s,
+average warm friendly face NOT model-handsome, slight stubble, kind tired eyes,
+plain dark sweater, sitting at a wooden home desk in a dim apartment late at
+night, staring at his laptop screen, caught mid-realization with eyebrows
+slightly raised and mouth slightly open in quiet disbelief, warm desk lamp
+mixing with cool blue laptop screen light on his face, shallow depth of
+field, 35mm photojournalism aesthetic, unposed authentic moment.
+The man and his shoulders fill the upper portion of the frame; the lower
+portion shows the dark wooden desk surface — this lower area is left
+visually quiet for text overlay.
+
+[TEXT OVERLAY — render this Korean text directly into the image, sharp and
+clean, do not stylize as graffiti or handwriting]
+
+Very large bold white Korean headline in TWO LINES, thick sans-serif
+typography (similar to Pretendard Black), tight line spacing, positioned
+in the lower middle area:
+Line 1:  ${M.l1}
+Line 2:  ${M.l2}
+
+The word "${M.accent}" in the headline must be highlighted with a solid
+filled rectangle behind it, color ${M.accentColor}, with white text on top
+of the colored box, the box has small rounded corners and tight padding
+around the word.
+
+Directly below the headline, one short line of italic gold-yellow text
+(#FFD93D), medium weight, noticeably smaller than the headline, suggesting
+a teaser:
+"${H}"
+
+In the very bottom-right corner, a tiny subtle gray text (#888888) with
+light opacity:
+"${copyState.handle}"
+
+A subtle dark gradient overlay sits behind only the text area (lower portion
+of the frame), going from transparent at the top to dark at the bottom,
+ensuring all text reads clearly without hiding the photo above.
+
+[NEGATIVE]
+no watermark, no logo, no magazine border, no frame, no caption box,
+no fake gibberish text, no garbled hangul, no English Lorem Ipsum,
+no glamour, no perfect skin, no model pose, no staged smile,
+no oversaturation, no plastic skin, no visible UI elements,
+no page number, no "P 1 / 8" text, no "swipe" instruction,
+no "넘겨서 보기", no Instagram dot indicators in the image,
+no visible coordinate values, no pixel measurements, no font size labels
+(no "92pt", "38px", "10px" etc. shown anywhere in the image),
+no Y-axis numbers, no X-axis numbers, no rulers, no design tool guidelines,
+no measurement annotations, no callout arrows pointing at sizes,
+no spacing labels`;
+}
+function updateCoverPrompt(){
+  const ta=document.getElementById('coverPromptOut');
+  if(ta)ta.value=buildCoverPrompt();
+}
+// ═══ 본문 P2~P8 작업장 (편집 가능 + 후크 기반 자동 재정렬) ═══
+const DEFAULT_BODY=[
+  {p:'P2 Day 1',
+   h:'처음엔 그냥\n호기심이었어요',
+   sub:'친구가 GPT 말고 다른 거 써본다길래',
+   body:`회사 동료가 어느 날 갑자기 "요즘 GPT 안 써"라고 하더라고요.
+이유를 물으니 "한 번 비교해봐, 답변 톤이 달라"라는 답.
+반신반의로 같은 질문을 두 AI에 던졌습니다.
+GPT는 번역체 느낌, Claude는 한국 사람이 쓴 듯한 문장.
+첫 5분 만에 차이를 체감했어요.`,
+   accent:'호기심'},
+  {p:'P3 Day 2',
+   h:'긴 문서 붙여넣자마자\n차이가 났습니다',
+   sub:'GPT 8K vs Claude 200K · 25배',
+   body:`50페이지짜리 회의록을 통째로 붙여 넣어봤어요.
+GPT는 중간에 잘려서 "전체를 보지 못했다"고 답하고,
+Claude는 50페이지를 다 읽고 핵심 5개를 뽑아줬습니다.
+문서 처리 한계: GPT 8천 토큰 / Claude 20만 토큰 (약 25배).
+긴 보고서·논문·이메일 묶음 다룰 때 결정타입니다.`,
+   accent:'200K'},
+  {p:'P4 Day 3',
+   h:'코드 디버깅\n한 번에 끝났어요',
+   sub:'SWE-Bench 49% vs 30%',
+   body:`Python 에러 메시지 3개를 같이 넘겨봤습니다.
+GPT: 추측성 답변 → 시도 → 또 다른 에러 (3번 주고받기).
+Claude: 첫 답변에서 3개 모두 원인 + 수정 코드 제시.
+공식 코딩 벤치마크(SWE-Bench): Claude 49% vs GPT-4 30%.
+실제 작업 시간이 절반으로 줄었어요.`,
+   accent:'한 번에'},
+  {p:'P5 Day 5',
+   h:'단점도\n있더라고요',
+   sub:'이미지·실시간 검색은 GPT가 낫습니다',
+   body:`솔직히 모든 면에서 Claude가 좋은 건 아닙니다.
+이미지 생성: Claude 미지원 → DALL-E·Imagen 별도 필요.
+실시간 웹 검색: GPT가 더 정확하고 빠름.
+음성 대화·맞춤 GPTs: GPT 생태계가 압도적.
+"문서·코드·글쓰기" 위주면 Claude, 멀티미디어면 GPT.`,
+   accent:'단점'},
+  {p:'P6 Day 6~7',
+   h:'결국 GPT 구독\n끊었습니다',
+   sub:'한 달 $20 → 0원, 일주일 만에 결심',
+   body:`직장 업무의 80%가 문서·메일·코드라서 결단했어요.
+GPT Plus 결제 취소 → Claude Pro 가입.
+한 달 $20 그대로지만 작업 효율이 체감 1.5배.
+이미지 필요할 땐 무료 Imagen으로 보완.
+일주일 써본 결과 후회 없음. 직장인 분들께 추천합니다.`,
+   accent:'끊었습니다'},
+  {p:'P7 CTA',
+   h:'다음 편:\nClaude 100% 활용 7가지',
+   sub:'팔로우하면 다음 화 알림',
+   body:`다음 콘텐츠에서 다룰 7가지:
+① 긴 회의록 1페이지 요약 프롬프트
+② 한국어 메일 톤 자연스럽게 잡는 법
+③ 코드 디버깅 단축 명령어
+④ 기획서 초안 5분 만에 잡기
+⑤·⑥·⑦ 보너스 — 팔로우하고 다음 편 ↗`,
+   accent:'7가지'},
+];
+let BODY=JSON.parse(JSON.stringify(DEFAULT_BODY));
+
+function buildBodyPrompt(idx){
+  const b=BODY[idx];if(!b)return '';
+  const headlineLines=(b.h||'').split('\n').filter(x=>x.trim());
+  const bodyLines=(b.body||'').split('\n').filter(x=>x.trim());
+  const accentColor=effMain().accentColor||'#FF8A3D';
+  const accent=(b.accent||'').trim();
+  return `Vertical 9:16 Instagram body page.
+
+[STYLE]
+Clean minimal editorial poster aesthetic, soft off-white background (#FAFAFA),
+very subtle paper texture, magazine editorial layout with strong typographic
+hierarchy. NO photos, NO people, NO human figures — just bold Korean
+typography on a light background.
+
+[TEXT — render this Korean text directly into the image, sharp and clean,
+do not stylize as graffiti or handwriting. Maintain clear visual hierarchy:
+headline largest, subheadline medium, body text smallest. All text is
+left-aligned with consistent generous left margin.]
+
+═══ BLOCK 1 — HEADLINE (upper third of frame) ═══
+Very large extra-bold Korean headline in ${headlineLines.length} line${headlineLines.length>1?'s':''},
+thick sans-serif typography (similar to Pretendard Black), color #111111,
+tight line spacing:
+${headlineLines.map((l,i)=>`Line ${i+1}:  ${l}`).join('\n')}
+
+${accent?`The word "${accent}" in the headline must be highlighted with a
+solid filled rectangle behind it, color ${accentColor}, with white text on
+top, small rounded corners, tight padding around the word.
+Only this one word gets the color box.`:''}
+
+═══ BLOCK 2 — SUBHEADLINE (just below headline) ═══
+One line of medium-weight Korean text, smaller than the headline, color
+#555555, italic optional:
+"${b.sub||''}"
+
+═══ BLOCK 3 — INSIGHT BODY TEXT (middle-lower area) ═══
+${bodyLines.length} lines of regular-weight Korean body text, noticeably
+smaller than the subheadline, color #333333, comfortable line spacing,
+left-aligned:
+${bodyLines.map((l,i)=>`L${i+1}:  ${l}`).join('\n')}
+
+This block delivers the actual insight and information. Each line should
+read clearly and not be cut off. Lines stay left-aligned, evenly spaced,
+with relaxed reading rhythm.
+
+═══ BLOCK 4 — HANDLE (bottom-right corner, very small) ═══
+Tiny gray text (#888888):
+"${copyState.handle}"
+
+═══ LAYOUT RULES ═══
+- Main subject area is centered vertically with intentional white space.
+- Generous outer margins on left and right.
+- Vertical rhythm: headline → small gap → subheadline → larger gap → body.
+- White space is intentional. Do not fill empty areas with decoration.
+
+[NEGATIVE]
+no photos, no people, no human figures, no busy background,
+no decorative illustrations, no stock graphics, no charts,
+no visible coordinate values, no pixel measurements, no font size labels
+(no "92pt", "38px" etc. shown anywhere in the image),
+no Y-axis numbers, no X-axis numbers, no rulers, no design tool guidelines,
+no measurement annotations, no callout arrows pointing at sizes,
+no spacing labels (no "10px", "16px" etc.),
+no emojis except those literally in the Korean text,
+no fake gibberish text, no garbled hangul, no English Lorem Ipsum,
+no watermark, no logo, no border, no frame, no UI elements,
+no page label text, no page numbers, no "P1" "P2" "P3" "P4" "P5" "P6" "P7"
+visible anywhere in the image, no "Day 1" "Day 2" "Day 3" "Day 5" "Day 6"
+"Day 7" labels in the image, no slash numbers like "1/8" or "2/8",
+no chapter or episode markers`;
+}
+
+function renderBodyWorkbench(){
+  const wb=document.getElementById('bodyWorkbench');if(!wb)return;
+  wb.innerHTML=BODY.map((b,i)=>{
+    const accentColor=effMain().accentColor||'#FF8A3D';
+    const previewLines=(b.h||'').split('\n').map(l=>{
+      if(b.accent&&l.includes(b.accent)){
+        return l.replace(b.accent,`<span style="background:${accentColor};color:#fff;padding:1px 6px;border-radius:3px">${b.accent}</span>`);
+      }return l;
+    }).join('<br>');
+    return `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-size:11px;color:var(--accent4);font-weight:700">${b.p}</div>
+        <button class="btn" style="font-size:10px;padding:3px 8px" onclick="copyBodyPrompt(${i})">📋 프롬프트</button>
+      </div>
+      <div style="background:#FAFAFA;color:#111;padding:10px;border-radius:6px;font-size:11px;line-height:1.4;margin-bottom:8px;min-height:60px">
+        <div style="font-weight:800;font-size:12px;line-height:1.3">${previewLines}</div>
+        <div style="font-size:9px;color:#666;margin-top:5px;font-weight:500;font-style:italic">${b.sub||''}</div>
+        ${b.body?`<div style="font-size:8px;color:#444;margin-top:6px;line-height:1.55;white-space:pre-line">${b.body}</div>`:''}
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:3px">메인 (Enter로 줄바꿈)</div>
+      <textarea oninput="BODY[${i}].h=this.value;renderBodyWorkbench();updateFullResultLater()" style="width:100%;background:#06060c;border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:5px;font-size:13px;font-weight:700;resize:vertical;min-height:48px;line-height:1.4;font-family:inherit">${b.h}</textarea>
+      <div style="font-size:10px;color:var(--muted);margin:6px 0 3px">부연 (1줄 데이터·근거)</div>
+      <input type="text" value="${(b.sub||'').replace(/"/g,'&quot;')}" oninput="BODY[${i}].sub=this.value;renderBodyWorkbench();updateFullResultLater()" style="width:100%;background:#06060c;border:1px solid var(--border);color:var(--muted);padding:6px 9px;border-radius:5px;font-size:11px">
+      <div style="font-size:10px;color:var(--accent2);margin:6px 0 3px;font-weight:700">📚 인사이트 본문 (3~5줄, 실제 정보·맥락)</div>
+      <textarea oninput="BODY[${i}].body=this.value;renderBodyWorkbench();updateFullResultLater()" style="width:100%;background:#06060c;border:1px solid var(--accent2);color:var(--text);padding:7px 9px;border-radius:5px;font-size:11px;resize:vertical;min-height:90px;line-height:1.6;font-family:inherit">${b.body||''}</textarea>
+      <div style="font-size:10px;color:var(--muted);margin:6px 0 3px">강조 단어 (메인 안에서 박스 처리)</div>
+      <input type="text" value="${(b.accent||'').replace(/"/g,'&quot;')}" oninput="BODY[${i}].accent=this.value;renderBodyWorkbench();updateFullResultLater()" style="width:100%;background:#06060c;border:1px solid var(--border);color:var(--accent3);padding:6px 9px;border-radius:5px;font-size:11px;font-weight:700">
+      <details style="margin-top:8px;font-size:10px">
+        <summary style="cursor:pointer;color:var(--accent4);font-weight:600;padding:3px 0">🪄 Gemini 프롬프트 펼치기 ▾</summary>
+        <textarea readonly style="width:100%;margin-top:4px;background:#06060c;color:var(--accent2);border:1px solid var(--border);border-radius:4px;padding:7px;font-family:'SF Mono',monospace;font-size:9px;resize:vertical;min-height:120px;line-height:1.45;white-space:pre-wrap">${buildBodyPrompt(i)}</textarea>
+      </details>
+    </div>`;
+  }).join('');
+}
+function copyBodyPrompt(i){
+  const txt=buildBodyPrompt(i);
+  navigator.clipboard.writeText(txt).then(()=>appendLog('📋 '+BODY[i].p+' 프롬프트 복사','')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    appendLog('📋 '+BODY[i].p+' 프롬프트 복사','');
+  });
+}
+function copyAllPagePrompts(){
+  const M=effMain(),H=effHook();
+  const blocks=[
+    `# ═══ P1 커버 ═══\n${buildCoverPrompt()}`,
+    ...BODY.map((b,i)=>`# ═══ ${b.p} ═══\n${buildBodyPrompt(i)}`),
+  ];
+  const txt=blocks.join('\n\n\n════════════════════════════════════════\n\n\n');
+  navigator.clipboard.writeText(txt).then(()=>appendLog('📋 전체 8페이지 프롬프트 복사','warn')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    appendLog('📋 전체 8페이지 프롬프트 복사','warn');
+  });
+}
+function downloadAllPagePrompts(){
+  const blocks=[
+    `# ═══ P1 커버 ═══\n${buildCoverPrompt()}`,
+    ...BODY.map((b,i)=>`# ═══ ${b.p} ═══\n${buildBodyPrompt(i)}`),
+  ];
+  const txt=blocks.join('\n\n\n════════════════════════════════════════\n\n\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
+  a.download='all_8_page_prompts.txt';a.click();
+  appendLog('📥 8페이지 프롬프트 .txt 다운로드','warn');
+}
+function resetBodyToDefault(){
+  BODY=JSON.parse(JSON.stringify(DEFAULT_BODY));
+  renderBodyWorkbench();renderFullResult();
+  appendLog('↺ 본문 기본값 복원','');
+}
+let _frTimer=null;
+function updateFullResultLater(){
+  clearTimeout(_frTimer);
+  _frTimer=setTimeout(()=>{renderFullResult()},250);
+}
+
+// 후크 키워드 → 본문 흐름 자동 재정렬 (현재 6페이지 구조: P2 Day1, P3 Day2, P4 Day3, P5 Day5, P6 Day6~7, P7 CTA)
+function applyHookToBody(){
+  const H=effHook();
+  if(!H){alert('후크가 비어있습니다');return;}
+  const climaxDay=(()=>{
+    const m=H.match(/(\d+)\s*일/);if(m)return Math.min(7,Math.max(1,+m[1]));
+    if(/Day\s*7|마지막\s*날|결제\s*끊/.test(H))return 7;
+    if(/Day\s*5|진짜는\s*5|충격|반전|단점/.test(H))return 5;
+    if(/\$20|구독료|결제/.test(H))return 7;
+    return 7;
+  })();
+  BODY=JSON.parse(JSON.stringify(DEFAULT_BODY));
+  // 인덱스 매핑 (현재 구조)
+  // BODY[0]=P2 Day1, [1]=P3 Day2, [2]=P4 Day3, [3]=P5 Day5(단점), [4]=P6 Day6~7(결론), [5]=P7 CTA
+  const Hclean=H.replace(/[…\.]+$/,'');
+  if(climaxDay===5){
+    // P5 Day 5를 클라이맥스로 (단점 발견 → 결정타로 톤 전환)
+    BODY[3]={...BODY[3],
+      p:'P5 Day 5 ★ 클라이맥스',
+      h:Hclean,
+      sub:'바로 이 순간이 결정타였습니다',
+      body:BODY[3].body};
+  }
+  if(climaxDay===7){
+    // P6 Day 6~7을 클라이맥스로 (결론 단계에 후크 박힘)
+    BODY[4]={...BODY[4],
+      p:'P6 Day 6~7 ★ 클라이맥스',
+      h:Hclean,
+      sub:'일주일의 결론이 여기 있습니다',
+      body:BODY[4].body};
+  }
+  // P7 CTA는 절대 덮어쓰지 않음
+  renderBodyWorkbench();renderFullResult();
+  appendLog('🔗 후크에 맞춰 본문 재정렬 (클라이맥스 Day '+climaxDay+')','warn');
+}
+
+function downloadCoverPrompt(){
+  const M=MAIN_OPTIONS[copyState.mainIdx];
+  const txt=buildCoverPrompt();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([txt],{type:'text/plain;charset=utf-8'}));
+  a.download=`cover_prompt_${(M.l1+'_'+M.l2).replace(/\s+/g,'_').slice(0,40)}.txt`;
+  a.click();
+  appendLog('📥 커버 프롬프트 .txt 다운로드','');
+}
+
+// ═══ 1페이지 커버 임팩트 4유형 (인지심리학 트리거 기반) ═══
+const COVER_PATTERNS=[
+  {n:'1️⃣',name:'얼굴 클로즈업형',why:'거울 뉴런 — 0.1초 안에 감정 전이',
+   meta:'배경: 평범한 호감형 한국인 30대 직장인, 발견 순간 표정 · 필터: 검정 55% · 컬러: 빨강+화이트',
+   prompt:`Candid documentary photo of an ordinary Korean man in his early 30s,
+average warm friendly face NOT model-handsome, slight stubble, kind tired eyes,
+plain dark sweater, sitting at a wooden home desk staring at his laptop screen,
+caught mid-realization "wait... what?", eyebrows slightly raised, mouth slightly
+open in disbelief, late evening, warm desk lamp + cool blue screen light mixing
+on his face, shallow DOF 35mm lens, photojournalism aesthetic, unposed authentic
+moment, the upper area shows soft dark room background
+
+--ar 9:16 --style raw --v 6
+--no text, letters, words, watermark, logo, magazine layout, border, frame,
+caption, fake text, lorem ipsum, glamour, perfect skin, model pose, staged smile`},
+  {n:'2️⃣',name:'상징 충돌형',why:'인지 부조화 — "왜 둘이 같이?" 호기심 폭발',
+   meta:'배경: 두 노트북 화면 갈등 구도 · 필터: 듀오톤 navy/gold · 컬러: 골드+네이비',
+   prompt:`Cinematic editorial photo, ordinary Korean office worker in his 30s,
+plain face friendly approachable not handsome, slightly tired but kind expression,
+sitting at a desk with two laptops side by side, left laptop screen glowing soft
+cool green, right laptop screen glowing warm amber-orange, his face caught in the
+middle looking back and forth in conflicted curiosity, right hand hovering between
+two keyboards mid-decision, late at night, faint floating data particles between
+screens, deep navy ambient with golden rim light, duotone navy and gold color grade,
+shallow depth of field, 35mm lens, documentary realism
+
+--ar 9:16 --style raw --v 6
+--no text, letters, words, watermark, logo, magazine layout, border, frame,
+caption, fake text, lorem ipsum, glamour, perfect skin, model pose, staged smile`},
+  {n:'3️⃣',name:'거대 숫자형',why:'본인 위치 즉시 판단 — "내 얘기네"',
+   meta:'배경: 단색 그라데이션 + 작은 인물 인서트 · 필터 없음 · 컬러: 골드+네이비',
+   prompt:`Bold typographic poster design, deep navy gradient to pure black background,
+giant gold metallic numeric "73" filling 50% of upper frame area, premium metallic
+finish with subtle reflections, fine film grain texture, minimalist editorial
+financial magazine aesthetic, soft vignette, professional poster composition,
+small candid documentary inset photo at the bottom of an ordinary Korean office
+worker in his 30s with average warm friendly face thinking thoughtfully at his
+phone, the inset has a thin gold border, ultra clean high-end design
+
+--ar 9:16 --style raw --v 6
+--no text, letters, words, watermark, logo, magazine layout, border around whole
+image, caption, fake text, lorem ipsum, glamour, perfect skin, model pose`},
+  {n:'4️⃣',name:'페인포인트 장면형',why:'즉각 공감 — "이거 매일 내 모습"',
+   meta:'배경: 페인 상황 다큐 컷 (야근, 텅빈 책상) · 필터: 다크 60% 차가운 톤 · 컬러: 시안+화이트',
+   prompt:`Cinematic over-the-shoulder photo of an exhausted ordinary Korean office
+worker in his 30s, plain warm friendly face NOT model-handsome, slumped posture,
+at 2am alone in a dim home office, only the laptop screen lighting his tired face,
+messy desk with cold half-empty coffee mug and stacked papers, deep blue ambient
+shadow, melancholic documentary photography, candid unposed authentic moment,
+shallow depth of field 35mm, soft film grain, the upper area shows the dim ceiling
+
+--ar 9:16 --style raw --v 6
+--no text, letters, words, watermark, logo, magazine layout, border, frame,
+caption, fake text, lorem ipsum, glamour, perfect skin, model pose, staged smile`},
+];
+function renderCoverPatterns(){
+  const el=document.getElementById('coverPatterns');if(!el)return;
+  el.innerHTML=COVER_PATTERNS.map((p,i)=>`
+    <div class="tt-cell">
+      <div class="pat">${p.n} ${p.name}</div>
+      <div style="font-size:10px;color:var(--accent2);margin-bottom:6px">🧠 ${p.why}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.6">${p.meta}</div>
+      <details style="font-size:11px;margin-bottom:6px">
+        <summary style="cursor:pointer;color:var(--accent4);font-weight:600;padding:4px 0">📝 영문 프롬프트 펼치기 ▾</summary>
+        <textarea readonly id="coverPrompt${i}" style="width:100%;margin-top:6px;background:#06060c;color:var(--accent2);border:1px solid var(--border);border-radius:6px;padding:9px;font-family:'SF Mono',monospace;font-size:10px;resize:vertical;min-height:160px;white-space:pre-wrap;line-height:1.5">${p.prompt}</textarea>
+        <button class="btn" style="margin-top:6px;font-size:11px;padding:5px 10px" onclick="copyToClipboard('coverPrompt${i}','${p.name} 프롬프트')">📋 복사</button>
+      </details>
+    </div>`).join('');
+}
+function copyToClipboard(elId,label){
+  const el=document.getElementById(elId);if(!el)return;
+  el.select();document.execCommand('copy');
+  appendLog('📋 복사: '+label,'');
+}
+
+// ═══ 전체 작업 결과 (선택한 주장 기준 P1~P8 + 4안 프롬프트 통합) ═══
+// THESIS rank별 카드뉴스 카피·본문 매핑 (B안 일기 톤)
+const CARDNEWS_SPEC={
+  1:{ // 클로드 vs ChatGPT
+    cover:{
+      main:'GPT 끊고\nClaude 써본 일주일',
+      accent:'Claude',
+      preheader:'·  P 1 / 8',
+      cta:'👉 넘겨서 보기',
+      handle:'@your_handle',
+      colors:{bg:'#000',main:'#fff',accent:'#FF8A3D',preheader:'#FFD93D'},
+      tone:'경험담 · 자백',
+      recommendCover:'1️⃣ 얼굴 클로즈업형',
+    },
+    body:[
+      {p:'P2 Day 1',h:'처음엔 그냥\n호기심이었어요',sub:'친구가 GPT 말고 다른 거 써본다길래',accent:'호기심'},
+      {p:'P3 Day 2',h:'긴 문서 붙여넣자마자\n차이가 났습니다',sub:'GPT 8K vs Claude 200K · 25배',accent:'200K'},
+      {p:'P4 Day 3',h:'코드 디버깅\n한 번에 끝났어요',sub:'SWE-Bench 49% vs 30%',accent:'한 번에'},
+      {p:'P5 Day 4',h:'메일·기획서 쓸 때\n톤이 달라요',sub:'한국어 자연스러움이 압도적',accent:'톤'},
+      {p:'P6 Day 5',h:'단점도 있더라고요',sub:'이미지·실시간 검색은 GPT가 낫습니다',accent:'단점'},
+      {p:'P7 Day 6~7',h:'결국 GPT 구독\n끊었습니다',sub:'한 달 $20 → 0원, 일주일 만에 결심',accent:'끊었습니다'},
+      {p:'P8 CTA',h:'다음: Claude 100%\n활용 7가지',sub:'@your_handle · 팔로우하면 다음 화',accent:'7가지'},
+    ],
+  },
+};
+function buildFullResult(){
+  const t=THESIS.find(x=>x.rank===selectedThesisId);
+  if(!t)return null;
+  const M=effMain();const H=effHook();
+  const cover={
+    main:`${M.l1}\n${M.l2}`,
+    accent:M.accent,
+    hook:H,
+    handle:copyState.handle,
+    colors:{bg:'#000',main:'#fff',accent:M.accentColor,hook:'#FFD93D'},
+    tone:'경험담 · 자백',
+    recommendCover:'1️⃣ 얼굴 클로즈업형',
+  };
+  return {thesis:t,cover,body:BODY,covers:COVER_PATTERNS,coverPrompt:buildCoverPrompt()};
+}
+function renderFullResult(){
+  const box=document.getElementById('fullResultBox');
+  const status=document.getElementById('fullResultStatus');
+  const r=buildFullResult();
+  if(!r){box.innerHTML='💡 STEP 3 (주제·주장 분리)에서 주장 카드를 클릭해 ⭐ 선택하면, 여기에 P1 커버 4안 + 본문 P2~P8 + 모든 영문 프롬프트가 자동 통합돼서 보입니다.';status.textContent='주장 카드를 먼저 선택하세요';return;}
+  status.textContent=`#${r.thesis.rank} · ${r.thesis.topic}`;
+  const md=fullResultMarkdown();
+  box.innerHTML=`<pre style="white-space:pre-wrap;color:var(--text);font-family:'SF Mono',monospace;font-size:11px;line-height:1.7;margin:0">${md.replace(/</g,'&lt;')}</pre>`;
+}
+function fullResultMarkdown(){
+  const r=buildFullResult();if(!r)return '';
+  const t=r.thesis;
+  const c=r.cover;
+  return `# 📦 ${t.topic}
+주장: ${t.claim}
+타깃: ${t.target} · 페인: ${t.pain} · 예상: ${t.views}
+근거: ${t.evidence}
+톤:   ${c.tone}  ·  추천 비주얼: ${c.recommendCover}
+
+═══════════════════════════════════════════════════
+[P1] 1페이지 커버 — 텍스트 오버레이 사양
+═══════════════════════════════════════════════════
+메인 헤드라인 (extra-bold, color ${c.colors.main}):
+  ${c.main.replace(/\n/g,' / ')}
+
+강조 단어 (인라인 박스):
+  텍스트: "${c.accent}"
+  배경:   ${c.colors.accent}
+  형태:   small rounded rect, tight padding
+
+후크 한 줄 (이탤릭, color ${c.colors.hook}, 메인 바로 아래):
+  ${c.hook}
+
+핸들 (우하단, 작게, color #888):
+  ${c.handle}
+
+배경 다크 그라데이션:
+  하단 절반 영역, transparent → dark, multiply blend
+
+═══════════════════════════════════════════════════
+[P1 Gemini 이미지 프롬프트 — 사진 + 텍스트 통합]
+═══════════════════════════════════════════════════
+${r.coverPrompt}
+
+═══════════════════════════════════════════════════
+[P2~P8] 본문 (일기 톤 · 깔끔한 배경 · Figma 작업)
+═══════════════════════════════════════════════════
+공통 규격: 배경 #FAFAFA · 텍스트 #111 · 강조 ${c.colors.accent}
+폰트: Pretendard Black 메인 (extra-bold) · 부연 medium · 본문 regular
+모든 페이지 Gemini로 생성 (위 [STYLE] 가이드 그대로 투입)
+
+${r.body.map(b=>`[${b.p}]
+메인:   ${b.h.replace(/\n/g,' / ')}
+부연:   ${b.sub}
+강조:   ${b.accent}
+─ 인사이트 본문 ─
+${b.body||'(미작성)'}
+`).join('\n')}
+
+═══════════════════════════════════════════════════
+[CHECKLIST]
+═══════════════════════════════════════════════════
+□ P1 헤드라인이 4:5 세이프존(Y285~1635) 안에 있음
+□ 핵심 텍스트가 상·하 285px 영역에 걸치지 않음
+□ 본문 페이지마다 메시지 1개로 정리됨
+□ 9:16과 4:5 두 비율 모두 잘림 없이 읽힘
+□ 같은 이미지에 메인 + A/B 변형 2개 = 총 3장 export
+`;
+}
+function copyFullResult(mode){
+  const r=buildFullResult();if(!r){alert('주장을 먼저 선택하세요 (STEP 3)');return;}
+  let text='';
+  if(mode==='prompts')text=r.covers.map(c=>`### ${c.n} ${c.name}\n${c.prompt}`).join('\n\n');
+  else if(mode==='headlines'){
+    const lines=[`[P1] ${r.cover.main.replace(/\n/g,' / ')}   강조: ${r.cover.accent}`];
+    r.body.forEach(b=>lines.push(`[${b.p}] ${b.h.replace(/\n/g,' / ')}   강조: ${b.accent}`));
+    text=lines.join('\n');
+  }
+  else text=fullResultMarkdown();
+  navigator.clipboard.writeText(text).then(()=>appendLog('📋 복사 완료: '+mode,'')).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);appendLog('📋 복사 완료: '+mode,'');
+  });
+}
+function downloadFullResult(){
+  const r=buildFullResult();if(!r){alert('주장을 먼저 선택하세요 (STEP 3)');return;}
+  const md=fullResultMarkdown();
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([md],{type:'text/markdown;charset=utf-8'}));
+  a.download=`cardnews_${r.thesis.rank}_${r.thesis.topic.replace(/\s+/g,'_').slice(0,30)}.md`;
+  a.click();appendLog('📥 .md 다운로드: #'+r.thesis.rank,'');
+}
+
+function addMoreClaims(){
+  const base=THESIS.length;
+  const extras=[
+    {topic:'AI 도구 가성비 비교 2026',claim:'무료 AI 3개 조합이 유료 1개보다 낫다',target:'예산 민감 직장인',pain:'유료 결제 망설임',views:'2만~8만'},
+    {topic:'AI 출력 검증 루틴',claim:'AI 답변 그대로 쓰면 100% 사고 난다',target:'실무자 전 연령',pain:'AI 결과 신뢰 불안',views:'3만~12만'},
+  ];
+  extras.forEach((e,i)=>THESIS.push({rank:base+i+1,topicWhy:'AI 추가 제안',claimWhy:'AI 추가 제안',evidence:'-',check:['추가 제안'],...e}));
+  renderThesis();renderSheets();
+  appendLog('➕ 제안 '+extras.length+'개 추가','');
+}
+function renderAuto(){
+  document.getElementById('autoTable').innerHTML=`
+    <thead><tr><th>STEP</th><th>작업</th><th>자동화 비율</th><th>진입 시점</th><th>도구·비고</th></tr></thead>
+    <tbody>${AUTO_MATRIX.map(a=>{
+      const color=a.pct>=80?'#00d4aa':a.pct>=50?'#ffd93d':a.pct>0?'#6c63ff':'#ff6b6b';
+      return`<tr>
+        <td style="color:var(--muted);font-weight:600">${a.step}</td>
+        <td>${a.task}</td>
+        <td><div class="auto-pct"><div class="bar"><div class="fill" style="width:${a.pct}%;background:${color}"></div></div><div class="num" style="color:${color}">${a.pct}%</div></div></td>
+        <td><span style="font-size:11px;color:var(--muted)">${a.when}</span></td>
+        <td style="font-size:12px;color:var(--muted)">${a.note}</td>
+      </tr>`;
+    }).join('')}</tbody>`;
+}
+function renderSheets(){
+  document.getElementById('sheetVideos').innerHTML=`
+    <thead><tr><th>#</th><th>제목</th><th>채널</th><th>게시일</th><th>조회수</th><th>좋아요</th><th>키워드</th><th>비디오ID</th></tr></thead>
+    <tbody>${VIDEOS.map((v,i)=>`<tr><td>${i+1}</td><td title="${unesc(v.title)}">${unesc(v.title)}</td><td>${v.ch}</td><td>${v.date}</td><td style="color:#00d4aa;font-weight:600">${v.views.toLocaleString()}</td><td>${v.likes.toLocaleString()}</td><td>${v.kw}</td><td><a href="https://youtube.com/watch?v=${v.vid}" target="_blank" style="color:#6c63ff">${v.vid}</a></td></tr>`).join('')}</tbody>`;
+  document.getElementById('sheetScores').innerHTML=`
+    <thead><tr><th>#</th><th>키워드</th><th>점수</th><th>평균조회</th><th>최고조회</th><th>최근30일</th><th>결과수</th></tr></thead>
+    <tbody>${SCORES.map((s,i)=>`<tr><td>${i+1}</td><td><strong>${s.kw}</strong></td><td style="color:#6c63ff;font-weight:700">${s.score}</td><td>${s.avg}</td><td style="color:#00d4aa">${s.max}</td><td>${s.recent}개</td><td>${s.cnt}개</td></tr>`).join('')}</tbody>`;
+  let i=1;const sgRows=[];SUGGEST.forEach(g=>g.items.forEach(it=>sgRows.push({n:i++,seed:g.seed,kw:it.t,type:it.cls||'normal'})));
+  document.getElementById('sheetSuggest').innerHTML=`
+    <thead><tr><th>#</th><th>시드</th><th>자동완성</th><th>유형</th></tr></thead>
+    <tbody>${sgRows.map(r=>`<tr><td>${r.n}</td><td>${r.seed}</td><td><strong>${r.kw}</strong></td><td>${r.type==='hot'?'<span style="color:#ff6b6b">🔥 인기</span>':r.type==='new'?'<span style="color:#00d4aa">✨ 신규</span>':'-'}</td></tr>`).join('')}</tbody>`;
+  document.getElementById('sheetThesis').innerHTML=`
+    <thead><tr><th>#</th><th>주제 (알고리즘)</th><th>주장 (시청자)</th><th>타깃</th><th>페인</th><th>예상 조회</th></tr></thead>
+    <tbody>${THESIS.map(t=>`<tr><td>${t.rank}</td><td><strong>${t.topic}</strong></td><td>${t.claim}</td><td>${t.target}</td><td>${t.pain}</td><td style="color:#00d4aa;font-weight:600">${t.views}</td></tr>`).join('')}</tbody>`;
+  document.getElementById('sheetAuto').innerHTML=`
+    <thead><tr><th>STEP</th><th>작업</th><th>자동화%</th><th>진입</th><th>비고</th></tr></thead>
+    <tbody>${AUTO_MATRIX.map(a=>`<tr><td>${a.step}</td><td>${a.task}</td><td style="color:#6c63ff;font-weight:700">${a.pct}%</td><td>${a.when}</td><td style="color:var(--muted)">${a.note}</td></tr>`).join('')}</tbody>`;
+}
+
+// ════════════ 인터랙션 ════════════════════════════════════════════
+function goStage(idx){
+  document.querySelectorAll('.section').forEach((s,i)=>s.classList.toggle('active',i===idx));
+  document.querySelectorAll('.stage-tab').forEach((t,i)=>t.classList.toggle('active',i===idx));
+  document.getElementById('progressFill').style.width=((idx+1)/7*100)+'%';
+}
+function goSheet(tab,id){
+  document.querySelectorAll('.sheet-tab').forEach(t=>t.classList.remove('active'));
+  tab.classList.add('active');
+  ['sheetVideos','sheetScores','sheetSuggest','sheetThesis','sheetAuto'].forEach(s=>{
+    document.getElementById(s).style.display=s===id?'':'none';
+  });
+}
+function appendLog(msg,cls=''){
+  const box=document.getElementById('logBox');
+  const line=document.createElement('div');
+  line.className='log-line '+cls;
+  line.textContent=msg;
+  box.appendChild(line);
+  box.scrollTop=box.scrollHeight;
+}
+
+// ════════════ 백엔드 헬스 + 실제 실행 ════════════════════════════
+async function checkHealth(){
+  try{
+    const r=await fetch('/api/contents/health');
+    const d=await r.json();
+    document.getElementById('healthDot').className='health-dot '+(d.ok?'ok':'err');
+    document.getElementById('healthDot').title='서버 정상 (engine: '+(d.engine?'✓':'✗')+')';
+  }catch(e){
+    document.getElementById('healthDot').className='health-dot err';
+    document.getElementById('healthDot').title='서버 연결 실패';
+  }
+}
+
+let isRunning=false;
+async function runRealEngine(){
+  if(isRunning)return;
+  isRunning=true;
+  const btn=document.getElementById('runBtn');
+  btn.classList.add('running');
+  document.getElementById('runIcon').textContent='⏸';
+  document.getElementById('runText').textContent='엔진 실행 중...';
+  document.getElementById('logStatus').textContent='실행 중';
+  appendLog('▶ POST /api/contents/run — v3 엔진 호출','warn');
+  appendLog('  대기: YouTube API 12 시드 검색 + 자동완성 + 점수 산출 (~30초 소요)','dim');
+  goStage(0);
+  try{
+    const r=await fetch('/api/contents/run');
+    const d=await r.json();
+    if(d.ok){
+      appendLog('✅ v3 엔진 실행 완료','');
+      const logTail=(d.log||'').split('\n').slice(-30).join('\n');
+      appendLog(logTail,'dim');
+      document.getElementById('logStatus').textContent='완료';
+    }else{
+      appendLog('❌ 엔진 오류: '+(d.error||'unknown'),'err');
+      document.getElementById('logStatus').textContent='오류';
+    }
+  }catch(e){
+    appendLog('❌ 네트워크 오류: '+e.message,'err');
+    document.getElementById('logStatus').textContent='네트워크 오류';
+  }
+  btn.classList.remove('running');
+  document.getElementById('runIcon').textContent='▶';
+  document.getElementById('runText').textContent='실제 v3 엔진 실행';
+  isRunning=false;
+}
+
+// ════════════ 내보내기 ════════════════════════════════════════════
+function exportSheet(type){
+  let rows,name;
+  if(type==='videos'){name='videos.csv';rows=[['#','제목','채널','게시일','조회수','좋아요','키워드','URL']];VIDEOS.forEach((v,i)=>rows.push([i+1,unesc(v.title),v.ch,v.date,v.views,v.likes,v.kw,'https://youtube.com/watch?v='+v.vid]))}
+  else if(type==='scores'){name='scores.csv';rows=[['#','키워드','점수','평균','최고','최근30','결과수']];SCORES.forEach((s,i)=>rows.push([i+1,s.kw,s.score,s.avg,s.max,s.recent,s.cnt]))}
+  else if(type==='suggest'){name='suggest.csv';rows=[['시드','자동완성','유형']];SUGGEST.forEach(g=>g.items.forEach(it=>rows.push([g.seed,it.t,it.cls||'normal'])))}
+  else if(type==='thesis'){name='thesis.csv';rows=[['#','주제','주장','타깃','페인','예상조회']];THESIS.forEach(t=>rows.push([t.rank,t.topic,t.claim,t.target,t.pain,t.views]))}
+  else{name='automation.csv';rows=[['STEP','작업','자동화%','진입','비고']];AUTO_MATRIX.forEach(a=>rows.push([a.step,a.task,a.pct,a.when,a.note]))}
+  const csv='﻿'+rows.map(r=>r.map(csvEsc).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));
+  a.download=name;a.click();
+  appendLog('📥 '+name+' 다운로드','');
+}
+function exportAll(){
+  const data={generated:new Date().toISOString(),seeds:SEEDS,suggest:SUGGEST,scores:SCORES,videos:VIDEOS,phases:PHASES,thesis:THESIS,longtail:LONGTAIL,comments:COMMENTS,automation:AUTO_MATRIX};
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}));
+  a.download='pipeline_full.json';a.click();
+  appendLog('📥 전체 통합 JSON 다운로드','');
+}
+
+// ════════════ 초기화 ════════════════════════════════════════════
+renderSeeds();renderSuggest();renderScores();renderVideos();renderComments();
+renderLongtail();renderPhases();renderThesis();renderAuto();renderSheets();
+syncCustomFromSelection();renderCoverPatterns();renderCopyWorkbench();renderBodyWorkbench();renderFullResult();
+document.getElementById('progressFill').style.width='14%';
+appendLog('[시작] AI 키워드 → 콘텐츠 자동화 파이프라인 v4 초기화','dim');
+appendLog('✓ 5 STEP 방법론 + v3 데이터 통합 완료','');
+appendLog('✓ Phase 1~5 인사이트 자동화 매트릭스 로드','');
+appendLog('✓ 3관문 + 12시간 룰 + 의사결정 트리 로드','');
+appendLog('▶ 우상단 "실제 v3 엔진 실행" 버튼으로 실 데이터 호출 가능','warn');
+checkHealth();
+</script>
+</body>
+</html>
