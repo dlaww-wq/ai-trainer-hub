@@ -1009,7 +1009,7 @@ const HOOK_OPTIONS=[
   '이거 본 동료들도 다 갈아탐',
   '마지막 날 결정한 한 가지',
   '근데 단점도 있어요 (있음)',
-  '한 달 $20이 사라졌어요',
+  '월 28,000원이 사라졌어요',
   '잘못 알면 못 돌아옴',
   '결제 끊은 그날의 화면',
 ];
@@ -1042,7 +1042,7 @@ const CONTENT_SEEDS=[
   {n:6, kw:'기획서 초안 5분 만에', claim:'템플릿 3개만 알면 끝', tone:'노하우', hook:'5분째에 깜짝 놀람', tier:'⭐⭐⭐⭐⭐'},
   {n:7, kw:'AI 자소서 면접관도 못 잡는 패턴', claim:'AI 티 나는 7가지 회피법', tone:'취준 페인', hook:'마지막 1개가 핵심', tier:'⭐⭐⭐⭐ 취준생 타깃'},
   {n:8, kw:'AI 부수익 월 50만원 만든 루틴', claim:'하루 1시간, 30일이면 도달', tone:'성공담', hook:'24일째 본 화면', tier:'⭐⭐⭐⭐⭐ 클릭률 끌어줌'},
-  {n:9, kw:'GPT 결제 끊고 무료 조합으로 살기', claim:'한 달 $20 → 0원, 효율 유지', tone:'경험담', hook:'무료 4개 조합', tier:'⭐⭐⭐⭐'},
+  {n:9, kw:'GPT 결제 끊고 무료 조합으로 살기', claim:'월 28,000원 → 0원, 효율 유지', tone:'경험담', hook:'무료 4개 조합', tier:'⭐⭐⭐⭐'},
   {n:10,kw:'AI로 영어 회의 통역', claim:'실시간 자막 + 회의록까지', tone:'스킬 가이드', hook:'외국 임원이 와도 OK', tier:'⭐⭐⭐⭐'},
   {n:11,kw:'30대 직장인 AI 학습 로드맵', claim:'3개월에 사내 AI 전문가', tone:'커리어', hook:'3개월째에 승진 면담', tier:'⭐⭐⭐⭐'},
   {n:12,kw:'노션·슬랙에 AI 붙이는 법', claim:'설치 0초, 효율 2배', tone:'툴 가이드', hook:'설치 후 30분 만에', tier:'⭐⭐⭐'},
@@ -1261,23 +1261,22 @@ Claude: 첫 답변에서 3개 모두 원인 + 수정 코드 제시.
    accent:'단점'},
   {p:'P6 Day 6~7',
    h:'결국 GPT 구독\n끊었습니다',
-   sub:'한 달 $20 → 0원, 일주일 만에 결심',
+   sub:'월 28,000원 → 0원, 일주일 만에 결심',
    body:`제 업무 중 긴 보고서·논문·코드 분석이 60% 이상이라 결단.
 GPT Plus 결제 취소 → Claude Pro 가입.
-한 달 $20 그대로지만 분석 작업 효율 체감 1.5배.
+월 28,000원 그대로지만 분석 작업 효율 체감 1.5배.
 한국어 메일·이미지 필요할 땐 무료 GPT로 보완하면 됩니다.
 긴 글·코드 자주 다루는 분이라면 추천합니다.`,
    accent:'끊었습니다'},
-  {p:'P7 CTA',
-   h:'다음 편:\nClaude 100% 활용 7가지',
-   sub:'팔로우하면 다음 화 알림',
-   body:`다음 콘텐츠에서 다룰 7가지:
-① 긴 회의록·논문 1페이지 요약 프롬프트
-② PDF·엑셀 통째로 분석 시키는 법
-③ 코드 디버깅 단축 명령어
-④ 기획서·보고서 초안 5분 만에 잡기
-⑤·⑥·⑦ 보너스 — 팔로우하고 다음 편 ↗`,
-   accent:'7가지'},
+  {p:'P7 정체성',
+   h:'직장인을 위한\nAI 활용 인사이트',
+   sub:'매주 1편, 실제 써본 결과만 정리합니다',
+   body:`우리는 AI를 매일 쓰는 직장인의 시점으로 콘텐츠를 만듭니다.
+실제 업무에 바로 쓸 수 있는 방법만 정리합니다.
+광고·과장 없이, 써본 그대로의 결과로.
+긴 글 분석, 코드 디버깅, 기획서 작성을 주로 다룹니다.
+매주 1편씩 검증된 인사이트가 올라옵니다.`,
+   accent:'인사이트'},
 ];
 let BODY=JSON.parse(JSON.stringify(DEFAULT_BODY));
 
@@ -1306,7 +1305,7 @@ headline largest, subheadline medium, body text smallest. All text is
 left-aligned with consistent generous left margin. All text is light-colored
 to stand out against the dark navy/green background.]
 
-═══ BLOCK 1 — HEADLINE (upper third of frame) ═══
+═══ BLOCK 1 — HEADLINE (upper-middle area, centered vertically as one block with the body) ═══
 Very large extra-bold Korean headline in ${headlineLines.length} line${headlineLines.length>1?'s':''},
 thick sans-serif typography (similar to Pretendard Black), color near-white
 #F5F5F5, tight line spacing:
@@ -1317,30 +1316,39 @@ solid filled rectangle behind it, color ${accentColor}, with white text on
 top, small rounded corners, tight padding around the word.
 Only this one word gets the color box.`:''}
 
-═══ BLOCK 2 — SUBHEADLINE (just below headline) ═══
+═══ BLOCK 2 — SUBHEADLINE (immediately below headline, tight gap) ═══
 One line of medium-weight Korean text, smaller than the headline, color
-soft warm gray #C7CED8, italic optional:
+soft warm gray #C7CED8, italic optional. Place this line VERY CLOSE to the
+headline (small consistent gap, NOT a big empty area):
 "${b.sub||''}"
 
-═══ BLOCK 3 — INSIGHT BODY TEXT (middle-lower area) ═══
+═══ BLOCK 3 — INSIGHT BODY TEXT (directly below subheadline, tight gap) ═══
 ${bodyLines.length} lines of regular-weight Korean body text, noticeably
 smaller than the subheadline, color soft light gray #D8DCE2, comfortable
-line spacing, left-aligned:
+line spacing, left-aligned. Body block starts ONE COMFORTABLE READING
+INTERVAL below the subheadline — not separated by large empty space.
+The whole text block (headline + sub + body) reads as ONE COHESIVE UNIT,
+centered vertically in the frame:
 ${bodyLines.map((l,i)=>`L${i+1}:  ${l}`).join('\n')}
 
 This block delivers the actual insight and information. Each line should
 read clearly and not be cut off. Lines stay left-aligned, evenly spaced,
 with relaxed reading rhythm.
 
-═══ BLOCK 4 — HANDLE (bottom-right corner, very small) ═══
-Tiny muted gray text (#7A8493):
+═══ BLOCK 4 — HANDLE (BOTTOM-LEFT corner, very small) ═══
+Tiny muted gray text (#7A8493) placed in the bottom-LEFT corner with a
+small margin from the left edge:
 "${copyState.handle}"
 
 ═══ LAYOUT RULES ═══
-- Main subject area is centered vertically with intentional white space.
+- All three text blocks (headline, subheadline, body) form ONE TIGHT
+  COHESIVE UNIT centered vertically in the frame — no large gaps between
+  them, no big empty middle area.
 - Generous outer margins on left and right.
-- Vertical rhythm: headline → small gap → subheadline → larger gap → body.
-- White space is intentional. Do not fill empty areas with decoration.
+- Vertical rhythm: headline → small tight gap → subheadline → small tight
+  gap → body lines.
+- White space appears around the unit (above and below), NOT between the
+  text blocks themselves.
 
 [NEGATIVE]
 no photos, no people, no human figures, no busy background,
@@ -1444,7 +1452,7 @@ function applyHookToBody(){
     const m=H.match(/(\d+)\s*일/);if(m)return Math.min(7,Math.max(1,+m[1]));
     if(/Day\s*7|마지막\s*날|결제\s*끊/.test(H))return 7;
     if(/Day\s*5|진짜는\s*5|충격|반전|단점/.test(H))return 5;
-    if(/\$20|구독료|결제/.test(H))return 7;
+    if(/28,?000|구독료|결제/.test(H))return 7;
     return 7;
   })();
   BODY=JSON.parse(JSON.stringify(DEFAULT_BODY));
@@ -1577,7 +1585,7 @@ const CARDNEWS_SPEC={
       {p:'P4 Day 3',h:'코드 디버깅\n한 번에 끝났어요',sub:'SWE-Bench 49% vs 30%',accent:'한 번에'},
       {p:'P5 Day 4',h:'메일·기획서 쓸 때\n톤이 달라요',sub:'한국어 자연스러움이 압도적',accent:'톤'},
       {p:'P6 Day 5',h:'단점도 있더라고요',sub:'이미지·실시간 검색은 GPT가 낫습니다',accent:'단점'},
-      {p:'P7 Day 6~7',h:'결국 GPT 구독\n끊었습니다',sub:'한 달 $20 → 0원, 일주일 만에 결심',accent:'끊었습니다'},
+      {p:'P7 Day 6~7',h:'결국 GPT 구독\n끊었습니다',sub:'월 28,000원 → 0원, 일주일 만에 결심',accent:'끊었습니다'},
       {p:'P8 CTA',h:'다음: Claude 100%\n활용 7가지',sub:'@your_handle · 팔로우하면 다음 화',accent:'7가지'},
     ],
   },
