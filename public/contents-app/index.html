@@ -516,6 +516,9 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:22px 0}
       <span style="font-size:11px;color:var(--muted);margin-left:auto">약속-보상 / 후크해결 / 타깃 / 톤 / 한국 문화 적합성 등 10항목 자동 진단 · 이슈 클릭 → 본문 카드로 점프</span>
     </div>
     <div id="validateBox"></div>
+
+    <div class="section-title" style="margin-top:24px"><div class="dot"></div> 📈 카피 히스토리<span class="count">검증 시 자동 스냅샷 · 클릭 → 복원</span></div>
+    <div id="historyBox"></div>
   </div>
 
   <!-- 📦 출력 -->
@@ -1535,6 +1538,8 @@ async function runRegenerate(){
 function renderValidate(d){
   _lastValidation=d;
   updateIssueBadge((d.issues||[]).length);
+  // 자동 히스토리 스냅샷 저장
+  saveHistorySnapshot(d.overallScore||0,d);
   const box=document.getElementById('validateBox');
   const score=d.overallScore||0;
   const scoreColor=score>=80?'#00D4AA':score>=60?'#FFD93D':score>=40?'#FF8A3D':'#FF3B3B';
@@ -1919,6 +1924,106 @@ function renderSheets(){
 }
 
 // ════════════ 인터랙션 ════════════════════════════════════════════
+// ═══ 카피 히스토리 (검증 시 자동 스냅샷, localStorage 기반) ═══
+const HISTORY_KEY='nl_contents_history_v1';
+const HISTORY_MAX=20;
+function loadHistory(){
+  try{return JSON.parse(localStorage.getItem(HISTORY_KEY))||[]}catch{return[]}
+}
+function saveHistorySnapshot(score,validation){
+  try{
+    const M=effMain();const H=effHook();
+    const hist=loadHistory();
+    const snap={
+      ts:Date.now(),
+      score,
+      thesisId:selectedThesisId,
+      cover:{l1:M.l1,l2:M.l2,accent:M.accent,accentColor:M.accentColor,hook:H},
+      body:BODY.map(b=>({p:b.p,h:b.h,sub:b.sub,body:b.body,accent:b.accent})),
+      issues:(validation?.issues||[]).length,
+      kfit:validation?.koreanFit?.score||0,
+    };
+    hist.unshift(snap);
+    if(hist.length>HISTORY_MAX)hist.length=HISTORY_MAX;
+    localStorage.setItem(HISTORY_KEY,JSON.stringify(hist));
+    renderHistory();
+  }catch(e){appendLog('히스토리 저장 실패: '+e.message,'err')}
+}
+function restoreHistory(idx){
+  const hist=loadHistory();const snap=hist[idx];if(!snap)return;
+  if(!confirm(`#${idx+1} 스냅샷 (${snap.score}점, ${new Date(snap.ts).toLocaleString('ko-KR')}) 으로 복원할까요?\n현재 작업이 덮어써집니다.`))return;
+  // cover 복원
+  copyState.edited=true;
+  copyState.customL1=snap.cover.l1||'';
+  copyState.customL2=snap.cover.l2||'';
+  copyState.customAccent=snap.cover.accent||'';
+  copyState.customAccentColor=snap.cover.accentColor||'#FF8A3D';
+  copyState.customHook=snap.cover.hook||'';
+  // body 복원
+  if(Array.isArray(snap.body)&&snap.body.length===BODY.length){
+    snap.body.forEach((b,i)=>{BODY[i]={...BODY[i],...b}});
+  }
+  if(typeof renderCopyWorkbench==='function')renderCopyWorkbench();
+  if(typeof renderBodyWorkbench==='function')renderBodyWorkbench();
+  if(typeof renderFullResult==='function')renderFullResult();
+  appendLog('↺ 스냅샷 #'+(idx+1)+' 복원: '+snap.score+'점','warn');
+}
+function deleteHistoryAll(){
+  if(!confirm('모든 히스토리 스냅샷을 삭제할까요?'))return;
+  localStorage.removeItem(HISTORY_KEY);
+  renderHistory();
+  appendLog('🗑 히스토리 전체 삭제','');
+}
+function renderHistory(){
+  const box=document.getElementById('historyBox');if(!box)return;
+  const hist=loadHistory();
+  if(hist.length===0){
+    box.innerHTML=`<div style="background:var(--surface2);border:1px dashed var(--border);border-radius:8px;padding:14px;color:var(--muted);font-size:12px;text-align:center">검증 실행 시 자동으로 점수와 함께 스냅샷이 저장됩니다.</div>`;
+    return;
+  }
+  // 점수 변화 그래프 (최신이 왼쪽)
+  const points=hist.slice().reverse().map((h,i)=>({x:i,y:h.score,h}));
+  const W=600,H=80,pad=12;
+  const maxY=100;
+  const xs=W-pad*2,ys=H-pad*2;
+  const path=points.map((p,i)=>{
+    const x=pad+(points.length<=1?xs/2:p.x*xs/(points.length-1));
+    const y=pad+ys-(p.y*ys/maxY);
+    return (i===0?'M':'L')+x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  const dots=points.map(p=>{
+    const x=pad+(points.length<=1?xs/2:p.x*xs/(points.length-1));
+    const y=pad+ys-(p.y*ys/maxY);
+    const c=p.y>=80?'#00D4AA':p.y>=60?'#FFD93D':p.y>=40?'#FF8A3D':'#FF3B3B';
+    return `<circle cx="${x}" cy="${y}" r="3.5" fill="${c}"/>`;
+  }).join('');
+  box.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div style="font-size:12px;color:var(--accent4);font-weight:700">📈 점수 변화 (최근 ${hist.length}회)</div>
+        <button class="btn" style="font-size:10px;padding:4px 9px;border-color:var(--accent3);color:var(--accent3)" onclick="deleteHistoryAll()">🗑 전체 삭제</button>
+      </div>
+      <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:${H}px;overflow:visible">
+        <path d="${path}" fill="none" stroke="rgba(108,99,255,.7)" stroke-width="2"/>
+        ${dots}
+      </svg>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin-top:10px">
+        ${hist.map((h,i)=>{
+          const c=h.score>=80?'#00D4AA':h.score>=60?'#FFD93D':h.score>=40?'#FF8A3D':'#FF3B3B';
+          const d=new Date(h.ts);
+          const tstr=d.toLocaleString('ko-KR',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
+          return `<div onclick="restoreHistory(${i})" style="background:var(--surface2);border-left:3px solid ${c};border-radius:0 6px 6px 0;padding:7px 9px;cursor:pointer;display:flex;align-items:center;gap:8px" onmouseover="this.style.background='var(--surface3)'" onmouseout="this.style.background='var(--surface2)'" title="클릭 → 복원">
+            <div style="font-size:16px;font-weight:800;color:${c};min-width:32px;text-align:center">${h.score}</div>
+            <div style="flex:1;font-size:10px;line-height:1.3">
+              <div style="color:var(--text)">${tstr}</div>
+              <div style="color:var(--muted)">이슈 ${h.issues} · 한국문화 ${h.kfit}/10</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
 // ═══ STEP 4 서브탭 네비 ═══
 function goSubTab(name){
   document.querySelectorAll('.sub-tab').forEach(t=>t.classList.toggle('active',t.dataset.sub===name));
@@ -2062,16 +2167,54 @@ function renderSeedsPanel(){
       <div style="font-size:9px;color:#7A8493;margin-top:6px">톤: ${s.tone}</div>
     </div>`).join('');
 }
+// ═══ 시드별 본문 템플릿 (시드 → 본문 6장 깊은 연동) ═══
+// 키: 시드 번호 (1~20) · 값: BODY 6장 (P2~P7)
+const SEED_BODY_TEMPLATES={
+  1:null, // Claude vs ChatGPT — DEFAULT_BODY 사용
+  2:[ // AI 자동화로 야근 끊기
+    {p:'P2 Day 1',h:'야근 시작은\n항상 비슷한 패턴',sub:'반복 업무 70%가 패턴이 있다는 발견',body:`매일 야근하는 이유를 적어봤어요.\n메일 회신 30분, 보고서 요약 1시간, 데이터 정리 40분.\n전부 "복붙·정리·요약" 같은 패턴 업무였습니다.\n이 70%만 AI에 넘겨도 9시 퇴근 가능하겠다 싶었어요.\n그래서 프롬프트 5개를 정리해봤습니다.`,accent:'패턴'},
+    {p:'P3 Day 2',h:'프롬프트 5개로\n3시간 단축',sub:'메일·요약·정리·번역·차트',body:`첫 번째: 메일 톤 자동 잡기 프롬프트 (5분).\n두 번째: 회의록 한 줄 요약 (3분).\n세 번째: 엑셀 데이터 분류 자동화 (10분).\n네 번째: 한영 번역 톤 조절 (2분).\n다섯 번째: 차트 캡션 자동 생성 (5분).`,accent:'5개'},
+    {p:'P4 Day 3',h:'팀장이 먼저\n"뭐 바뀌었어?"',sub:'결과물 품질도 같이 올라감',body:`사흘 만에 팀장이 먼저 말을 걸어왔어요.\n"보고서 톤이 깔끔해졌네, 뭐 바뀌었어?"\n실은 AI에 톤 잡기 프롬프트 한 번 더 돌린 것뿐.\n야근만 줄어든 게 아니라 품질도 올라갔습니다.\n바로 다음 주에 다른 동료 1명에게도 공유했어요.`,accent:'품질'},
+    {p:'P5 Day 5',h:'주의할 점도\n있더라고요',sub:'그대로 쓰면 사고 납니다',body:`AI 출력을 100% 믿으면 사고가 납니다.\n숫자 데이터, 이름, 날짜는 반드시 검토 필수.\n특히 외부 발송 메일은 한 번 더 본인 시선으로.\n프롬프트에 "근거 명시"를 넣어두면 검증이 쉬워요.\n5일째에 이 습관을 들이고 안정이 됐습니다.`,accent:'검토'},
+    {p:'P6 Day 6~7',h:'9시 퇴근\n일주일째',sub:'한 달 ₩28,000 투자, 야근 0',body:`AI Pro 결제 월 28,000원, 야근 거의 0건.\n주말 출근 없어지고 가족 저녁 같이 먹는 게 일상.\n프롬프트 5개만 잘 짜두면 누구나 가능합니다.\n무료 버전으로도 70%는 됩니다.\n긴 글·정리 자주 다루는 직장인분께 추천.`,accent:'추천'},
+    {p:'P7 정체성',h:'직장인을 위한\nAI 활용 인사이트',sub:'매주 1편 실제 써본 결과만',body:`우리는 AI를 매일 쓰는 직장인의 시점으로\n실제 업무에 바로 쓸 수 있는 방법만 정리합니다.\n광고·과장 없이 써본 그대로의 결과로.\n긴 글 분석, 코드 디버깅, 기획서 작성을 다룹니다.\n매주 1편씩 검증된 인사이트가 올라옵니다.`,accent:'인사이트'},
+  ],
+  8:[ // AI 부수익 월 50만원
+    {p:'P2 Day 1',h:'하루 1시간으로\n월 50만원 가능?',sub:'동료가 부수익 인증 보여준 날',body:`동료가 카카오뱅크 잔액을 보여줬어요.\n전월 대비 +52만원, 출처는 "AI 콘텐츠 의뢰".\n"하루 1시간씩, 인스타 카드뉴스 만들어줘"가 전부.\n진짜로 가능한가 의심하면서 30일 따라해봤습니다.\n결과는 24일째에 나왔어요.`,accent:'50만원'},
+    {p:'P3 Day 7',h:'1주차\n클라이언트 0명',sub:'예상은 했지만 좀 막막함',body:`첫 주는 클라이언트 0, 포트폴리오 0.\n인스타에 5개 샘플 카드뉴스만 올림.\n그동안 한 일: 카피 + AI 이미지 조합 연습.\n프롬프트 표준화 (한국어 톤 + 비주얼 4유형).\n조회수 평균 300, 팔로워 +12명.`,accent:'0명'},
+    {p:'P4 Day 14',h:'2주차\n첫 의뢰가 왔습니다',sub:'DM 한 건이 시작이었어요',body:`14일째 DM 한 건: "이런 거 한 세트 얼마예요?"\n5장 카드뉴스 30분 만에 완성해서 ₩50,000 받음.\n그 클라이언트가 동료 2명에게 소개.\n포트폴리오 3개 더 쌓이면서 가격 ₩80,000으로 올림.\n2주차 누적 매출 ₩230,000.`,accent:'첫 의뢰'},
+    {p:'P5 Day 24',h:'24일째에\n월 50만원 돌파',sub:'바로 그 화면을 캡처했어요',body:`24일째 누적 매출 ₩523,000 (의뢰 9건).\n시간 투자는 하루 평균 50분 정도.\n핵심은 "프롬프트 자산화" — 한 번 만들면 재사용.\n2025년 11월부터 카드뉴스 외주 시장이 크게 열림.\n경쟁자는 아직 많지 않아 진입 적기입니다.`,accent:'돌파'},
+    {p:'P6 Day 30',h:'한 달 마감\n수익 ₩670,000',sub:'다음 달엔 100만 노립니다',body:`30일 마감: 매출 ₩670,000, 의뢰 14건.\n주말도 안 빼고 했지만 평균 1시간 미만.\n다음 달엔 가격 인상 + 신규 채널 확장 계획.\n월 100만 부수익은 충분히 도달 가능한 영역.\n긴 글·시각 콘텐츠 다루는 분이라면 추천.`,accent:'670,000'},
+    {p:'P7 정체성',h:'직장인을 위한\nAI 활용 인사이트',sub:'매주 1편 실제 써본 결과만',body:`우리는 AI를 매일 쓰는 직장인의 시점으로\n실제 업무에 바로 쓸 수 있는 방법만 정리합니다.\n광고·과장 없이 써본 그대로의 결과로.\n긴 글 분석, 코드 디버깅, 부수익 워크플로우 다룹니다.\n매주 1편씩 검증된 인사이트가 올라옵니다.`,accent:'인사이트'},
+  ],
+  15:[ // 사장님이 모르는 AI 활용 7가지
+    {p:'P2 ① 회의록',h:'① 50페이지 회의록\n5초 요약',sub:'다른 사람보다 1시간 빨리 끝',body:`회의록 PDF 통째로 AI에 넣고 한 줄 명령.\n"핵심 5개를 굵게 + 액션 아이템 분리".\n5초 안에 1페이지 요약 완성.\n다른 사람들이 1시간 들여 정리할 때 끝남.\n남는 시간은 본인 업무에.`,accent:'5초'},
+    {p:'P3 ② PDF·엑셀',h:'② PDF·엑셀\n통째로 분석',sub:'함수 몰라도 통계 자동 산출',body:`엑셀 100행을 그대로 붙여 넣고 질문.\n"카테고리별 평균과 이상치를 찾아줘".\nVLOOKUP·SUMIF 몰라도 결과 나옴.\nPDF 표는 캡처해서 넣으면 같은 방식.\n상사 보고는 그 결과 화면 캡처로 충분.`,accent:'분석'},
+    {p:'P4 ③ 코드·매크로',h:'③ 코드 디버깅\n단축 명령어',sub:'한 줄로 끝나는 자동화 매크로',body:`엑셀 매크로, 파이썬 짤막한 자동화.\n원하는 결과만 평문으로 설명하면 코드 생성.\n에러 메시지 그대로 복붙 → 수정안 5초.\n매일 30분씩 줄던 반복 업무가 5분으로.\n사장님은 모르고 본인만 쓰는 효율 차이.`,accent:'5분'},
+    {p:'P5 ④ 기획서·보고서',h:'④ 기획서 초안\n5분 만에',sub:'템플릿 3개면 어떤 주제든 가능',body:`주제만 던지면 5분 안에 기획서 초안.\n사용 템플릿: 문제→원인→해결책→근거.\n그대로 쓰지 말고 본인 톤으로 1번 수정.\n팀장 평가: "구조가 깔끔하네"가 단골 멘트.\n작성 시간 절반, 품질은 오히려 더 좋음.`,accent:'5분'},
+    {p:'P6 ⑤⑥ 비밀 2개',h:'⑤ 메일 톤 자동화\n⑥ 데이터 시각화',sub:'사내 어디서도 안 알려주는 노하우',body:`⑤ 거래처 메일 톤: AI에 "공손+단호" 키워드.\n   사과·요청·거절 메일이 3분 안에 완성.\n⑥ 데이터 시각화: 숫자만 넣으면 차트 추천.\n   파워포인트 디자인까지 자동 제안.\n이 둘만 알아도 회의에서 빛납니다.`,accent:'노하우'},
+    {p:'P7 ⑦ + 정체성',h:'⑦ 회사 몰래\n구독 갈아타기',sub:'무료 조합으로 월 ₩28,000 절약',body:`⑦ 가장 비밀스러운 1가지 — 구독 갈아타기.\n   회사 결제 GPT보다 무료 조합이 더 좋을 때 있음.\n   본인 업무 80% 커버하는 무료 도구 3개 조합.\n———\n매주 1편씩 검증된 인사이트만 올라옵니다.\n광고·과장 없이 직장인 시점으로.`,accent:'갈아타기'},
+  ],
+};
+
 function useSeed(n){
   const s=CONTENT_SEEDS.find(x=>x.n===n);if(!s)return;
   appendLog('🌱 시드 #'+n+' 선택: '+s.kw,'warn');
   copyState.edited=true;
   copyState.customHook=s.hook;
+  // 시드별 본문 템플릿 적용 (있으면)
+  const template=SEED_BODY_TEMPLATES[n];
+  if(template&&Array.isArray(template)&&template.length===BODY.length){
+    template.forEach((b,i)=>{BODY[i]={...BODY[i],...b}});
+    appendLog('  → 본문 6장 자동 재구성 완료','');
+  }
   if(typeof renderCopyWorkbench==='function')renderCopyWorkbench();
+  if(typeof renderBodyWorkbench==='function')renderBodyWorkbench();
+  if(typeof renderFullResult==='function')renderFullResult();
   if(typeof goSubTab==='function')goSubTab('cover');
   setTimeout(()=>{document.getElementById('copyWorkbench')?.scrollIntoView({block:'start',behavior:'smooth'})},250);
 }
-syncCustomFromSelection();renderCoverPatterns();renderCopyWorkbench();renderBodyWorkbench();renderFullResult();renderSeedsPanel();
+syncCustomFromSelection();renderCoverPatterns();renderCopyWorkbench();renderBodyWorkbench();renderFullResult();renderSeedsPanel();renderHistory();
 document.getElementById('progressFill').style.width='14%';
 appendLog('[시작] AI 키워드 → 콘텐츠 자동화 파이프라인 v4 초기화','dim');
 appendLog('✓ 5 STEP 방법론 + v3 데이터 통합 완료','');
