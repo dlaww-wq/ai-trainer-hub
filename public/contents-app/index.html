@@ -2296,23 +2296,35 @@ async function useSeedFull(n){
       }),
     });
     const d=await r.json();
+    console.log('[useSeedFull] API 응답:',d);
     if(!d.ok)throw new Error(d.error||'생성 실패');
-    // 4) 응답 적용
-    if(d.cover){
-      copyState.customL1=d.cover.l1||'';
-      copyState.customL2=d.cover.l2||'';
-      copyState.customAccent=d.cover.accent||'';
-      if(d.cover.hook)copyState.customHook=d.cover.hook;
-    }
+    if(!d.cover||!d.cover.l1)throw new Error('Claude 응답에 cover.l1 비어있음. raw=' + JSON.stringify(d).slice(0,200));
+    // 4) 응답 적용 (custom 모드로 강제 전환 — 패키지 그리드 대신 새 카피 input 표시)
+    copyState.mode='custom';
+    copyState.edited=true;
+    copyState.customL1=d.cover.l1||'';
+    copyState.customL2=d.cover.l2||'';
+    copyState.customAccent=d.cover.accent||'';
+    if(d.cover.hook)copyState.customHook=d.cover.hook;
     if(Array.isArray(d.body)&&d.body.length===BODY.length){
       d.body.forEach((b,i)=>{BODY[i]={...BODY[i],...b}});
     }
-    // 5) UI 일괄 갱신
+    // 5) custom 라디오 강제 체크
+    const r2=document.querySelector('input[name="copyMode"][value="custom"]');
+    if(r2)r2.checked=true;
+    // 6) UI 일괄 갱신
     if(typeof renderCopyWorkbench==='function')renderCopyWorkbench();
     if(typeof renderBodyWorkbench==='function')renderBodyWorkbench();
     if(typeof renderFullResult==='function')renderFullResult();
-    appendLog('✨ 시드 #'+n+' AI 풀세트 완성 ('+(d.changes||[]).length+'건 변경)','warn');
-    // 6) 결과 미리보기
+    // 7) 결과 미리보기 배너
+    const wb2=document.getElementById('copyWorkbench');
+    if(wb2){
+      const banner=document.createElement('div');
+      banner.style.cssText='background:rgba(0,212,170,.12);border:1px solid var(--accent2);border-radius:8px;padding:12px;margin-bottom:10px;font-size:12px;color:var(--accent2)';
+      banner.innerHTML=`✨ <b>시드 #${n} AI 풀세트 완성</b> — 커버: "${d.cover.l1} / ${d.cover.l2}" · 본문 ${d.body?.length||0}장 · 변경 ${(d.changes||[]).length}건`;
+      wb2.prepend(banner);
+    }
+    appendLog('✨ 시드 #'+n+' AI 풀세트 완성: '+d.cover.l1+' / '+d.cover.l2,'warn');
     setTimeout(()=>{document.getElementById('copyWorkbench')?.scrollIntoView({block:'start',behavior:'smooth'})},250);
   }catch(e){
     if(wb)wb.innerHTML=`<div style="background:rgba(255,107,107,.1);border:1px solid var(--accent3);border-radius:10px;padding:14px;color:var(--accent3);font-size:13px">❌ AI 풀세트 생성 실패: ${e.message||e}</div>`;
