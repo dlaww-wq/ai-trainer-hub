@@ -472,6 +472,14 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:22px 0}
     <span style="font-size:11px;color:var(--muted);margin-left:auto">각 카드의 [📋 프롬프트] → Gemini 8회 투입 → 8개 PNG 받기</span>
   </div>
 
+  <div class="section-title"><div class="dot"></div> 🔍 전체 흐름 검증<span class="count">한국 톱 계정 10대 패턴 기준 (Claude API)</span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;align-items:center">
+    <button class="btn primary" style="font-size:13px;padding:9px 18px" onclick="runValidate()">🔍 검증 실행</button>
+    <button class="btn" onclick="document.getElementById('validateBox').innerHTML=''">↺ 결과 지우기</button>
+    <span style="font-size:11px;color:var(--muted);margin-left:auto">약속-보상 / 후크해결 / 타깃 / 톤 / 한국 문화 적합성 등 10항목 자동 진단</span>
+  </div>
+  <div id="validateBox" style="margin-bottom:24px"></div>
+
   <div class="section-title"><div class="dot"></div> 📦 전체 작업 결과 (선택한 주장 기준 · P1~P8 통합)<span class="count" id="fullResultStatus">주장 카드를 먼저 선택하세요</span></div>
   <div id="fullResultBox" style="background:#06060c;border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:20px;font-size:12px;line-height:1.7;color:var(--muted);min-height:80px">
     💡 STEP 3 (주제·주장 분리)에서 주장 카드를 클릭해 ⭐ 선택하면, 여기에 P1 커버 4안 + 본문 P2~P8 + 모든 영문 프롬프트가 자동 통합돼서 보입니다.
@@ -1422,6 +1430,91 @@ function copyAllPagePrompts(){
     appendLog('📋 전체 8페이지 프롬프트 복사','warn');
   });
 }
+// ═══ 카피 검증 (한국 인스타 카드뉴스 10대 항목) ═══
+async function runValidate(){
+  const M=effMain();const H=effHook();
+  const box=document.getElementById('validateBox');
+  box.innerHTML=`<div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;text-align:center">
+    <div style="display:inline-block;width:18px;height:18px;border:2px solid var(--accent);border-top-color:transparent;border-radius:50%;animation:spin 1s linear infinite"></div>
+    <div style="font-size:12px;color:var(--muted);margin-top:8px">검증 중... Claude Sonnet 호출 (3~8초)</div>
+  </div><style>@keyframes spin{to{transform:rotate(360deg)}}</style>`;
+  try{
+    const r=await fetch('/api/contents/validate',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        cover:{l1:M.l1,l2:M.l2,main:M.l1+' / '+M.l2,hook:H,accent:M.accent},
+        body:BODY.map(b=>({p:b.p,h:b.h,sub:b.sub,body:b.body,accent:b.accent})),
+      }),
+    });
+    const d=await r.json();
+    if(!d.ok){throw new Error(d.error||'검증 실패')}
+    renderValidate(d);
+  }catch(e){
+    box.innerHTML=`<div style="background:rgba(255,107,107,.1);border:1px solid var(--accent3);border-radius:10px;padding:14px;color:var(--accent3);font-size:13px">❌ 검증 실패: ${e.message||e}</div>`;
+  }
+}
+function renderValidate(d){
+  const box=document.getElementById('validateBox');
+  const score=d.overallScore||0;
+  const scoreColor=score>=80?'#00D4AA':score>=60?'#FFD93D':score>=40?'#FF8A3D':'#FF3B3B';
+  const scoreLabel=score>=80?'우수':score>=60?'개선 여지 있음':score>=40?'개선 권장':'재작업 필요';
+  const cats=d.categoryScores||{};
+  const catLabels={promise:'약속-보상',hook:'후크 해결',target:'타깃 일관',numbers:'숫자 일관',tone:'톤 일관',prudence:'신중함',indirect:'적당한 우회',english:'외래어 비율',social:'사회적 맥락',credibility:'수치 근거'};
+  const issues=d.issues||[];
+  const sevColor={critical:'#FF3B3B',high:'#FF8A3D',medium:'#FFD93D',low:'#00D4AA'};
+  const sevLabel={critical:'🔴 critical',high:'🟠 high',medium:'🟡 medium',low:'🟢 low'};
+  const sevOrder={critical:0,high:1,medium:2,low:3};
+  const sortedIssues=[...issues].sort((a,b)=>(sevOrder[a.severity]||9)-(sevOrder[b.severity]||9));
+  const kf=d.koreanFit||{score:0,notes:''};
+  box.innerHTML=`
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px">
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:18px;align-items:center;margin-bottom:14px">
+        <div style="width:90px;height:90px;border-radius:50%;border:6px solid ${scoreColor};display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:28px;font-weight:800;color:${scoreColor};line-height:1">${score}</div>
+          <div style="font-size:9px;color:var(--muted)">/ 100</div>
+        </div>
+        <div>
+          <div style="font-size:16px;font-weight:700;color:${scoreColor}">${scoreLabel}</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">한국 문화 적합성: <strong style="color:var(--text)">${kf.score}/10</strong> · ${kf.notes||'코멘트 없음'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--muted)">발견된 이슈</div>
+          <div style="font-size:18px;font-weight:800;color:${issues.length>0?'var(--accent3)':'var(--accent2)'}">${issues.length}건</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:6px;margin-bottom:14px">
+        ${Object.keys(catLabels).map(k=>{
+          const v=cats[k]??0;const c=v>=8?'#00D4AA':v>=5?'#FFD93D':v>=3?'#FF8A3D':'#FF3B3B';
+          return `<div style="background:var(--surface2);border-radius:6px;padding:7px 10px;display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:10px;color:var(--muted)">${catLabels[k]}</span>
+            <span style="font-size:12px;font-weight:700;color:${c}">${v}</span>
+          </div>`;
+        }).join('')}
+      </div>
+
+      ${sortedIssues.length>0?`
+        <div style="font-size:11px;color:var(--accent4);font-weight:700;margin-bottom:8px;border-top:1px solid var(--border);padding-top:12px">📋 발견된 이슈 ${sortedIssues.length}건</div>
+        <div style="display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto">
+          ${sortedIssues.map(it=>{
+            const c=sevColor[it.severity]||'#999';
+            return `<div style="background:var(--surface2);border-left:3px solid ${c};border-radius:0 6px 6px 0;padding:9px 12px">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <span style="font-size:10px;color:${c};font-weight:700">${sevLabel[it.severity]||it.severity}</span>
+                <span style="font-size:10px;color:var(--muted)">${catLabels[it.category]||it.category} · ${it.page||'전체'}</span>
+              </div>
+              <div style="font-size:12px;color:var(--text);line-height:1.5">${it.message||''}</div>
+              ${it.fix?`<div style="font-size:11px;color:var(--accent2);margin-top:5px;padding-top:5px;border-top:1px dashed var(--border)">✏️ ${it.fix}</div>`:''}
+            </div>`;
+          }).join('')}
+        </div>`:`
+        <div style="background:rgba(0,212,170,.08);border:1px solid var(--accent2);border-radius:8px;padding:12px;font-size:13px;color:var(--accent2);text-align:center">
+          ✅ 이슈 0건 — 인스타 톱 계정 패턴 통과
+        </div>`}
+    </div>`;
+}
+
 function downloadAllPagePrompts(){
   const blocks=[
     `# ═══ P1 커버 ═══\n${buildCoverPrompt()}`,
