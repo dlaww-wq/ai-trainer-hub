@@ -1,14 +1,10 @@
 /**
- * Claude API 응답에서 JSON 객체를 robust하게 추출 + 파싱.
+ * Claude API 응답에서 JSON 객체를 robust하게 추출 + 파싱 + 마크다운 자동 제거.
  *
  * Claude가 markdown 코드블록 / 설명 텍스트 / 문자열 안 unescaped 줄바꿈 등을
- * 섞어 보내도 안전하게 첫 정상 JSON 객체를 추출.
- *
- * 처리 순서:
- *   1. markdown 코드펜스 제거
- *   2. balanced bracket scanner로 첫 { ... } 블록 추출 (문자열 안 괄호 무시)
- *   3. 문자열 안 raw 줄바꿈을 \\n 으로 escape (Claude 흔한 실수)
- *   4. JSON.parse 시도 → 실패 시 다시 한 번 sanitize 적용
+ * 섞어 보내도 안전하게 첫 정상 JSON 객체를 추출하고,
+ * 결과 객체의 모든 string 필드에서 **bold** / *italic* / `code` 등 마크다운을 제거한다.
+ * (AI가 만든 티가 나는 ** 같은 문자가 카드뉴스 화면에 나오지 않도록 보호)
  */
 export function parseLLMJson<T = unknown>(raw: string): { ok: true; data: T } | { ok: false; error: string; raw: string } {
   if (!raw) return { ok: false, error: "empty response", raw };
@@ -22,17 +18,54 @@ export function parseLLMJson<T = unknown>(raw: string): { ok: true; data: T } | 
   text = block;
 
   // 3) try parse → 실패 시 escape 줄바꿈 후 재시도
+  let data: unknown;
   try {
-    return { ok: true, data: JSON.parse(text) as T };
+    data = JSON.parse(text);
   } catch {
     const sanitized = escapeStringNewlines(text);
     try {
-      return { ok: true, data: JSON.parse(sanitized) as T };
+      data = JSON.parse(sanitized);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       return { ok: false, error: msg, raw: text.slice(0, 500) };
     }
   }
+
+  // 4) 결과 객체 모든 string 필드에서 마크다운 제거
+  return { ok: true, data: stripMarkdownDeep(data) as T };
+}
+
+/** 문자열 안 마크다운 표기 제거 (AI 작성 티 제거) */
+function stripMarkdown(s: string): string {
+  return s
+    // bold/italic
+    .replace(/\*\*([^*]+)\*\*/g, "$1") // **bold**
+    .replace(/__([^_]+)__/g, "$1") // __bold__
+    .replace(/(?<![*\w])\*([^*\n]+)\*(?![*\w])/g, "$1") // *italic*
+    .replace(/(?<![_\w])_([^_\n]+)_(?![_\w])/g, "$1") // _italic_
+    // inline code · link · 헤딩 · 리스트 마커
+    .replace(/`([^`]+)`/g, "$1")
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/^#{1,6}\s+/gm, "")
+    .replace(/^\s*[-*+]\s+/gm, "")
+    // 잔여 ** / __ (짝 안 맞는 케이스)
+    .replace(/\*\*+/g, "")
+    .replace(/__+/g, "")
+    .trim();
+}
+
+/** 객체/배열을 deep walk하며 모든 string 필드에 stripMarkdown 적용 */
+function stripMarkdownDeep(node: unknown): unknown {
+  if (typeof node === "string") return stripMarkdown(node);
+  if (Array.isArray(node)) return node.map(stripMarkdownDeep);
+  if (node && typeof node === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(node as Record<string, unknown>)) {
+      out[k] = stripMarkdownDeep(v);
+    }
+    return out;
+  }
+  return node;
 }
 
 /** balanced bracket scanner — 첫 { } 블록 (문자열·escape 인식) */
