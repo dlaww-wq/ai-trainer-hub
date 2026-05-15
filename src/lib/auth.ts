@@ -4,6 +4,7 @@ import NaverProvider from "next-auth/providers/naver";
 import KakaoProvider from "next-auth/providers/kakao";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { pushAuthLog } from "@/lib/auth-debug-log";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as NextAuthOptions["adapter"],
@@ -56,5 +57,29 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/auth/signin",
     error: "/auth/signin",
+  },
+
+  // ── 안전한 에러 로깅만 ─────────────────────────────────
+  // logger.error 만 활성화, try/catch로 NextAuth 본 흐름 격리.
+  // debug:true / events 콜백 / debug logger 는 추가하지 않음 (이전 회귀 방지).
+  logger: {
+    error(code, metadata) {
+      try {
+        pushAuthLog({
+          level: "error",
+          code,
+          message: metadata instanceof Error ? metadata.message : `NextAuth error: ${code}`,
+          meta: metadata instanceof Error ? { error: metadata } : (metadata as Record<string, unknown>),
+        });
+      } catch {
+        /* swallow — 로깅이 OAuth flow를 깨면 안 됨 */
+      }
+    },
+    warn() {
+      /* noop */
+    },
+    debug() {
+      /* noop */
+    },
   },
 };
