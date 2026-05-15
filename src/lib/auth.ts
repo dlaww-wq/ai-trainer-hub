@@ -60,55 +60,37 @@ export const authOptions: NextAuthOptions = {
   },
 
   // ── 디버그 로깅 ─────────────────────────────────────────
-  // NextAuth 내부 에러/경고/디버그를 인메모리 링 버퍼에 캡쳐.
-  // /api/auth-debug?token=AUTH_DEBUG_TOKEN 으로 실시간 조회.
-  debug: true,
+  // error/warn만 캡쳐 (verbose debug 비활성화 — production OAuth flow 보호).
+  // logger 콜백 내부는 try/catch로 감싸 NextAuth 본 흐름이 절대 깨지지 않게 한다.
   logger: {
     error(code, metadata) {
-      pushAuthLog({
-        level: "error",
-        code,
-        message: metadata instanceof Error ? metadata.message : `NextAuth error: ${code}`,
-        meta: metadata instanceof Error ? { error: metadata } : (metadata as Record<string, unknown>),
-      });
+      try {
+        pushAuthLog({
+          level: "error",
+          code,
+          message: metadata instanceof Error ? metadata.message : `NextAuth error: ${code}`,
+          meta: metadata instanceof Error ? { error: metadata } : (metadata as Record<string, unknown>),
+        });
+      } catch {}
     },
     warn(code) {
-      pushAuthLog({ level: "warn", code, message: `NextAuth warn: ${code}` });
+      try {
+        pushAuthLog({ level: "warn", code, message: `NextAuth warn: ${code}` });
+      } catch {}
     },
-    debug(code, metadata) {
-      pushAuthLog({
-        level: "debug",
-        code,
-        message: `NextAuth debug: ${code}`,
-        meta: (metadata as Record<string, unknown>) || undefined,
-      });
+    debug() {
+      /* noop — verbose 로그 비활성화 */
     },
   },
   events: {
     async signIn(message) {
-      pushAuthLog({
-        level: "info",
-        code: "signIn",
-        message: `signIn ok provider=${message.account?.provider} email=${message.user?.email}`,
-        meta: { isNewUser: message.isNewUser, provider: message.account?.provider },
-      });
-    },
-    async signOut() {
-      pushAuthLog({ level: "info", code: "signOut", message: "signOut" });
-    },
-    async createUser(message) {
-      pushAuthLog({
-        level: "info",
-        code: "createUser",
-        message: `createUser email=${message.user?.email}`,
-      });
-    },
-    async linkAccount(message) {
-      pushAuthLog({
-        level: "info",
-        code: "linkAccount",
-        message: `linkAccount provider=${message.account?.provider} email=${message.user?.email}`,
-      });
+      try {
+        pushAuthLog({
+          level: "info",
+          code: "signIn",
+          message: `signIn ok provider=${message.account?.provider} email=${message.user?.email}`,
+        });
+      } catch {}
     },
   },
 };
