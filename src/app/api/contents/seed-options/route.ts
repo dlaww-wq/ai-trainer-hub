@@ -47,7 +47,11 @@ function naturalizeWords(s: string): string {
     .replace(/디테일/g, "세부사항")
     .replace(/퀄리티/g, "품질")
     .replace(/트렌디/g, "요즘 유행하는")
-    .replace(/마인드셋/g, "마음가짐");
+    .replace(/마인드셋/g, "마음가짐")
+    .replace(/안 필요(해|함|함요|합니다)?/g, "필요 없어요")
+    .replace(/안 가능(해|함|합니다)?/g, "안 돼요")
+    .replace(/안 충분(해|함|합니다)?/g, "부족해요")
+    .replace(/안 적합(해|함|합니다)?/g, "안 맞아요");
 }
 function wrapIfTooLong(line: string, limit: number): string {
   if (!line || line.length <= limit) return line;
