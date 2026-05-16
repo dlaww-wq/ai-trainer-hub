@@ -1353,13 +1353,13 @@ function buildCoverPrompt(){
     ? `Highlight only the word "${accent}" inside the headline above with a rounded rectangle background in ${accentColor} and white text on top of it.`
     : '';
 
-  return `한국어 인스타그램 카드 1장. 비율 9:16, 세로형.
+  return `한국어 인스타그램 카드뉴스 커버 이미지 1장. 비율 9:16, 세로형 (1080x1920).
 
-배경: 짙은 네이비 #0A1F2E 위에서 다크 그린 #0E2A24 아래로 부드러운 그라데이션. 옅은 도트/사선 텍스처 6-10% 불투명도, 부드러운 필름 그레인, 가장자리 어두운 비네트. 사진·인물·일러스트레이션 ❌, 오직 한글 타이포그래피만.
+배경 (사진): 평범한 30대 한국 직장인 남자가 어두운 방에서 노트북을 보다가 깜짝 놀란 표정. 따뜻한 책상 조명 + 차가운 모니터 빛이 얼굴에 섞임, 35mm 다큐멘터리 사진 스타일, 얕은 심도, 자연스러운 순간. 인물은 화면 상단 60% 영역(어깨~얼굴 클로즈업), 하단 40%는 어두운 책상 표면 — 이 어두운 공간 위에 텍스트가 들어감.
 
-Render ONLY the following Korean text exactly as written, in Korean Hangul (do NOT translate, do NOT add any other words):
+이미지 하단에 다음 한글 텍스트를 정확히 렌더링 (Korean Hangul, 영어 번역 ❌, 글자 깨짐 ❌):
 
-Headline — bold white #F5F5F5 sans-serif (Pretendard Black style), centered, 2 lines, tight line-height:
+Headline — lower-middle area, bold white #F5F5F5 sans-serif (Pretendard Black style), 2 lines, tight line-height:
 ${headlineQuoted}
 
 ${accentBlock}
@@ -1370,13 +1370,14 @@ Sub-line — directly under the headline (tight spacing), small italic gold #FFD
 Handle — bottom-left corner, very small gray #7A8493:
 "${handle}"
 
-Layout: headline + sub-line + handle grouped as one block, vertically centered, generous left/right margin. Empty space only above and below the block.
+텍스트 영역 뒤에 매우 옅은 검정 그라데이션 오버레이 (텍스트만 보호, 사진 가리지 않음).
 
 Strictly forbidden in the image:
-- Any English words, brackets like 【】, labels such as "헤드라인", "부연", "본문", "핸들", "Line 1", "L1", "BLOCK"
+- Any English words on screen, brackets like 【】, Korean labels such as "헤드라인", "부연", "핸들"
+- Labels like "Line 1", "L1", "BLOCK", "Headline", "Sub"
 - Page numbers, "P1", "1/8", "swipe", "넘겨서 보기"
-- Watermarks, logos, borders, frames, rulers, arrows, pixel measurements, font-size annotations
-- Broken Hangul, fake romanization, duplicate handle text inside the body
+- Watermarks, logos, borders, frames, rulers, arrows, pixel measurements
+- Broken Hangul (예: "굴체" not "글체"), fake romanization, duplicate handle
 - Trailing commas at end of any line`;
 }
 function updateCoverPrompt(){
