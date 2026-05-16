@@ -39,6 +39,23 @@ function softenPreachyTone(s: string): string {
     .replace(/달라졌네([\s.!?]|$)/g, "달라졌더라고요$1");
 }
 
+/** 일상에서 안 쓰는 단어 → 한국 직장인 실제 단어로 치환 */
+function naturalizeWords(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/글체/g, "말투")
+    .replace(/문체/g, "말투")
+    .replace(/톤앤매너/g, "말투")
+    .replace(/솔루션/g, "방법")
+    .replace(/인사이트/g, "팁")
+    .replace(/런칭/g, "공개")
+    .replace(/에센셜/g, "꼭 필요한")
+    .replace(/디테일/g, "세부사항")
+    .replace(/퀄리티/g, "품질")
+    .replace(/트렌디/g, "요즘 유행하는")
+    .replace(/마인드셋/g, "마음가짐");
+}
+
 /** 한 줄 글자수 초과 시 어절 단위로 가장 균형 가까운 위치에 \n 삽입 (1회만) */
 function wrapIfTooLong(line: string, limit: number): string {
   if (!line || line.length <= limit) return line;
@@ -99,10 +116,10 @@ interface CardBodyPage {
 
 function sanitizeCover(cover: CardCover, changes: string[]): CardCover {
   const out: CardCover = { ...cover };
-  // 위인전 톤 1차 치환
-  if (out.l1) out.l1 = softenPreachyTone(out.l1);
-  if (out.l2) out.l2 = softenPreachyTone(out.l2);
-  if (out.hook) out.hook = softenPreachyTone(out.hook);
+  // 위인전 톤 + 어색한 단어 치환
+  if (out.l1) out.l1 = naturalizeWords(softenPreachyTone(out.l1));
+  if (out.l2) out.l2 = naturalizeWords(softenPreachyTone(out.l2));
+  if (out.hook) out.hook = naturalizeWords(softenPreachyTone(out.hook));
   // 끝 쉼표 제거
   const beforeHook = out.hook;
   if (out.l1) out.l1 = stripTrailingComma(out.l1);
@@ -124,9 +141,9 @@ function sanitizeCover(cover: CardCover, changes: string[]): CardCover {
 
 function sanitizeBodyPage(b: CardBodyPage, idx: number, changes: string[]): CardBodyPage {
   const out: CardBodyPage = { ...b };
-  if (out.h) out.h = softenPreachyTone(out.h);
-  if (out.sub) out.sub = softenPreachyTone(out.sub);
-  if (out.body) out.body = softenPreachyTone(out.body);
+  if (out.h) out.h = naturalizeWords(softenPreachyTone(out.h));
+  if (out.sub) out.sub = naturalizeWords(softenPreachyTone(out.sub));
+  if (out.body) out.body = naturalizeWords(softenPreachyTone(out.body));
   if (out.h) out.h = wrapMultiline(stripTrailingComma(out.h), HEADLINE_LINE_LIMIT);
   if (out.sub) out.sub = stripTrailingComma(out.sub);
   if (out.sub) out.sub = wrapIfTooLong(out.sub, SUB_LIMIT);

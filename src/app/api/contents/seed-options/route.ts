@@ -34,6 +34,21 @@ function softenPreachyTone(s: string): string {
     .replace(/됐어요([\s.!?]|$)/g, "되더라고요$1")
     .replace(/달라졌네([\s.!?]|$)/g, "달라졌더라고요$1");
 }
+function naturalizeWords(s: string): string {
+  if (!s) return s;
+  return s
+    .replace(/글체/g, "말투")
+    .replace(/문체/g, "말투")
+    .replace(/톤앤매너/g, "말투")
+    .replace(/솔루션/g, "방법")
+    .replace(/인사이트/g, "팁")
+    .replace(/런칭/g, "공개")
+    .replace(/에센셜/g, "꼭 필요한")
+    .replace(/디테일/g, "세부사항")
+    .replace(/퀄리티/g, "품질")
+    .replace(/트렌디/g, "요즘 유행하는")
+    .replace(/마인드셋/g, "마음가짐");
+}
 function wrapIfTooLong(line: string, limit: number): string {
   if (!line || line.length <= limit) return line;
   if (line.includes("\n")) return line;
@@ -65,15 +80,15 @@ function sanitizeSeedOptions(data: Record<string, unknown>): Record<string, unkn
   if (Array.isArray(data.mainOptions)) {
     out.mainOptions = (data.mainOptions as MainOpt[]).map((m) => {
       const next: MainOpt = { ...m };
-      if (next.l1) next.l1 = wrapIfTooLong(stripTrailingComma(softenPreachyTone(next.l1)), HEADLINE_LINE_LIMIT);
-      if (next.l2) next.l2 = wrapIfTooLong(stripTrailingComma(softenPreachyTone(next.l2)), HEADLINE_LINE_LIMIT);
+      if (next.l1) next.l1 = wrapIfTooLong(stripTrailingComma(naturalizeWords(softenPreachyTone(next.l1))), HEADLINE_LINE_LIMIT);
+      if (next.l2) next.l2 = wrapIfTooLong(stripTrailingComma(naturalizeWords(softenPreachyTone(next.l2))), HEADLINE_LINE_LIMIT);
       next.accent = fixAccent(next.l1 || "", next.l2 || "", next.accent || "");
       return next;
     });
   }
   if (Array.isArray(data.hookOptions)) {
     out.hookOptions = (data.hookOptions as string[]).map((h) =>
-      wrapIfTooLong(stripTrailingComma(softenPreachyTone(h || "")), HOOK_LIMIT),
+      wrapIfTooLong(stripTrailingComma(naturalizeWords(softenPreachyTone(h || ""))), HOOK_LIMIT),
     );
   }
   return out;
